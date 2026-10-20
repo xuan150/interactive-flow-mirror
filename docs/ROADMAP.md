@@ -50,7 +50,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 | | # | Sketch | 學到什麼 | 成果 | 前置 | 文件 |
 |---|---|---|---|---|---|---|
 | [x] | 01 | Flow | VFX Graph 四區塊、Turbulence、Bloom | 會流動的發光粒子 | — | [01-flow](sketches/01-flow.md) |
-| [ ] | 02 | Lines | Particle Strip、漸層、透明疊加 | **待機畫面完成** | 01 | |
+| [x] | 02 | Lines | Particle Strip、漸層、透明疊加 | **待機畫面完成** | 01 | [02-lines](sketches/02-lines.md) |
 | [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02 | |
 | [ ] | 04 | Ripple | Compute shader、ping-pong RT、波動方程 | 點擊產生漣漪並干涉 | 03（可獨立先做） | |
 | [ ] | 05 | Silhouette | ID 遮罩蓋印、靜止凝聚／快走推開 | 身影浮現 | 03 | |
