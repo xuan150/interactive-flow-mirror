@@ -13,8 +13,9 @@
 - 畫面 2:1（Game View 1920×960），正交相機 Size 5（可視範圍 20×10 單位），鏡像（左右翻轉，在輸入端處理）
 - **交會**：帶走彼此的顏色（靠近時漸層互滲、分開後殘留）＋ 流場互相牽引（每人是一個漩渦）
 - **痕跡**：人離開後軌跡慢慢沉澱淡出
-- **動作語彙**（第一版）：只做快慢。靜止 → 線條凝聚成身影；快走 → 推開線條
-- **待機**：沒人時流場線條自己漂浮
+- **視覺主體**：90 條**錨定的水平平行線**（參考 Rutt-Etra、Unknown Pleasures）。每個點＝原位＋位移，會起伏但不漂走；冷藍柔白、Bloom 朦朧光。Sketch 02 的流場線條保留為探索紀錄，之後可當交會處的點綴
+- **動作語彙**（第一版）：只做快慢。靜止 → 線條隆起、讓開出清楚的身影；快走 → 線條被大幅推開、甩動
+- **待機**：線條緩慢起伏（noise）＋週期性呼吸慢波＋沿線流動的流光，不能完全靜止
 - 視覺層與輸入來源的接縫：見 [ADR 0001](adr/0001-visuals-read-person-buffer-and-id-mask.md)
 
 ## 架構：單向資料流
@@ -30,7 +31,7 @@
 | 輸入 | `MousePersonSource`：左鍵新增/拖曳人、Delete 移除；把剪影貼圖蓋印到 ID 遮罩 | C# + 簡單 shader |
 | 人物狀態 | `PersonTracker`：持有人物清單、算速度、顏色交換、上傳 GraphicsBuffer | 純 C#（顏色交換寫成純函式，有 EditMode 測試） |
 | 場 | **漣漪場**：波動方程 ping-pong RT（1/4 解析度），進場／移動注入波源<br>**痕跡場**：衰減 RT，人走過塗上自身顏色，緩慢淡出 | Compute Shader 或 Custom Render Texture |
-| 渲染 | 全畫面粒子 + Particle Strip 拖成線；力 = 流場 noise + 每人漩渦 + 漣漪梯度 + 靜止時吸向遮罩；顏色取自人物／痕跡場 | VFX Graph |
+| 渲染 | 90 條錨定平行線（Particle Strip，Single Burst 一次生成、永生）；位置 = 原位 + 位移，位移 = 起伏 noise + 呼吸 + 每人漩渦 + 漣漪高度 + 身影遮罩隆起；亮度含流光；顏色取自人物／痕跡場 | VFX Graph |
 | 後製 | URP Volume Bloom；之後選配 LED 點陣 | URP Post-processing |
 
 ## 資料夾慣例
@@ -39,7 +40,7 @@
 Assets/_Project/
   Scripts/  Shaders/  VFX/
   Scenes/Main.unity
-  Scenes/Sketches/Sketch_0X_*.unity   ← 教學用，可丟棄
+  Scenes/Sketches/Sketch_0X_*/        ← 教學用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
 docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開始做那張時才寫）
 ```
 
@@ -50,14 +51,41 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 | | # | Sketch | 學到什麼 | 成果 | 前置 | 文件 |
 |---|---|---|---|---|---|---|
 | [x] | 01 | Flow | VFX Graph 四區塊、Turbulence、Bloom | 會流動的發光粒子 | — | [01-flow](sketches/01-flow.md) |
-| [x] | 02 | Lines | Particle Strip、漸層、透明疊加 | **待機畫面完成** | 01 | [02-lines](sketches/02-lines.md) |
-| [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02 | |
+| [x] | 02 | Lines | Particle Strip、漸層、透明疊加 | 流場線條（探索，待機改由 02b） | 01 | [02-lines](sketches/02-lines.md) |
+| [x] | 02b | Line Field | Operator、Single Burst、stripIndex、Total Time、noise | **待機畫面完成** | 02 | [02b-line-field](sketches/02b-line-field.md) |
+| [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02b | |
 | [ ] | 04 | Ripple | Compute shader、ping-pong RT、波動方程 | 點擊產生漣漪並干涉 | 03（可獨立先做） | |
-| [ ] | 05 | Silhouette | ID 遮罩蓋印、靜止凝聚／快走推開 | 身影浮現 | 03 | |
+| [ ] | 05 | Silhouette | ID 遮罩蓋印、遮罩驅動線條隆起讓開 | 身影浮現 | 03 | |
 | [ ] | 06 | Exchange | 顏色交換＋痕跡場 | 交會帶走彼此顏色、軌跡沉澱 | 03、05 | |
 | [ ] | — | Main | 把 01–06 組合到正式架構 | 完整概念作品 | 01–06 | |
 | [ ] | 後 | Webcam | 人像分割模型產出 ID 遮罩 | 真人入鏡 | Main | |
 | [ ] | 後 | LED 點陣 | 後製 shader | 展場感 | Main | |
+
+## 數學積木
+
+Operator 的積木、配方與學習資源：[vfx-math-cheatsheet](vfx-math-cheatsheet.md)。遇到新積木就補進去。
+
+## 參考圖
+
+存在 [docs/refs/](refs/)，做的時候對照。
+
+| 圖 | 是什麼 | 對應 |
+|---|---|---|
+| [lines-wave-vertical](refs/lines-wave-vertical.png) | 平行線整片緩慢起伏 | 02b 待機 |
+| [lines-ridge-bump](refs/lines-ridge-bump.png) | 平行線被推出一道隆起 | 05 身影、04 漣漪 |
+| [lines-vortex-orbit](refs/lines-vortex-orbit.png) | 線條繞著中心旋成軌道 | 03 漩渦、06 交會 |
+| [particles-filaments-purple](refs/particles-filaments-purple.png) | 大量細小粒子擠在流場匯聚處，成為發光細絲 | 點子池 |
+
+## 點子池
+
+還沒排進 sketch 的點子，組合 Main 時評估。
+
+- **發光細絲**（[參考](refs/particles-filaments-purple.png)）：幾十萬顆極小、半透明粒子被流場推著，擠在匯聚處的就疊加成亮絲。Sketch 01 Frequency 調高時「粒子被困住」就是雛形。可用在交會（兩人之間長出細絲）或痕跡（走過處沉澱成紋路再散開）
+- **幽靈訪客**：待機時偶爾在隨機位置冒出一圈很淡的漣漪，像剛有人經過（需要 04 漣漪場）
+- **牽線**：距離夠近的兩人之間長出細線，走遠時拉長、變細、斷掉
+- **抬手**：送出較大的漣漪（假人用右鍵模擬）
+- **集體共振**：很多人同時靜止時，漣漪干涉成克拉德尼圖形般的穩定幾何圖樣
+- **彗星尾巴**：02 的線改成固定長度、跟著筆尖跑的尾巴（墨跡壽命 = min(尾巴秒數, 筆尖剩餘壽命)）
 
 ## 驗收
 
