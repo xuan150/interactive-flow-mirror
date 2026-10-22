@@ -173,7 +173,7 @@ hole  = Π smoothstep(coreRadius, coreRadius + coreSoftness, 距離)   ← 每�
 
 ## 交接（2026-10-22，03 結束）
 
-**目前狀態**：03 完成到 ③+++ v4。滑鼠假人（最多 8）→ GraphicsBuffer → `Vortex.hlsl`：吸入＋扭轉成固定螺旋、亮帶沿螺旋臂流進中心、中心實心黑盤＋外圈亮環。檔名實際是 `LineVotex.vfx`、場景 `Sketch_03_votex`（少了 r）。
+**目前狀態**：03 完成到 ③+++ v4。滑鼠假人（最多 8）→ GraphicsBuffer → `Vortex.hlsl`：吸入＋扭轉成固定螺旋、亮帶沿螺旋臂流進中心、中心實心黑盤＋外圈亮環。檔名實際是 `LineVotex.vfx`、資料夾 `Sketch_03_votex`（少了 r）；場景檔已在 04 時改名成 `Sketch_03_vortex`。
 
 **沒做／未確認**
 - ④ 強度淡入淡出：延後（見上）
