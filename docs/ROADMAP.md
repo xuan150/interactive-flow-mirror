@@ -14,6 +14,7 @@
 - **交會**：帶走彼此的顏色（靠近時漸層互滲、分開後殘留）＋ 流場互相牽引（每人是一個漩渦）
 - **痕跡**：人離開後軌跡慢慢沉澱淡出
 - **視覺主體**：90 條**錨定的水平平行線**（參考 Rutt-Etra、Unknown Pleasures）。每個點＝原位＋位移，會起伏但不漂走；冷藍柔白、Bloom 朦朧光。Sketch 02 的流場線條保留為探索紀錄，之後可當交會處的點綴
+- **人的呈現**：不投真人影像。人是**黑色剪影**，線條繞著身體流動、讓開，身體邊緣最亮（像逆光，線條擠在一起發亮）；認得出是人但沒有細節（[參考](refs/person-silhouette-rim.png)）
 - **動作語彙**（第一版）：只做快慢。靜止 → 線條隆起、讓開出清楚的身影；快走 → 線條被大幅推開、甩動
 - **待機**：線條緩慢起伏（noise）＋週期性呼吸慢波＋沿線流動的流光，不能完全靜止
 - 視覺層與輸入來源的接縫：見 [ADR 0001](adr/0001-visuals-read-person-buffer-and-id-mask.md)
@@ -53,9 +54,9 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 | [x] | 01 | Flow | VFX Graph 四區塊、Turbulence、Bloom | 會流動的發光粒子 | — | [01-flow](sketches/01-flow.md) |
 | [x] | 02 | Lines | Particle Strip、漸層、透明疊加 | 流場線條（探索，待機改由 02b） | 01 | [02-lines](sketches/02-lines.md) |
 | [x] | 02b | Line Field | Operator、Single Burst、stripIndex、Total Time、noise | **待機畫面完成** | 02 | [02b-line-field](sketches/02b-line-field.md) |
-| [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02b | |
+| [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02b | [03-vortex](sketches/03-vortex.md) |
 | [ ] | 04 | Ripple | Compute shader、ping-pong RT、波動方程 | 點擊產生漣漪並干涉 | 03（可獨立先做） | |
-| [ ] | 05 | Silhouette | ID 遮罩蓋印、遮罩驅動線條隆起讓開 | 身影浮現 | 03 | |
+| [ ] | 05 | Silhouette | ID 遮罩蓋印、黑色剪影、線條繞流、邊緣光暈 | 身影浮現 | 03 | |
 | [ ] | 06 | Exchange | 顏色交換＋痕跡場 | 交會帶走彼此顏色、軌跡沉澱 | 03、05 | |
 | [ ] | — | Main | 把 01–06 組合到正式架構 | 完整概念作品 | 01–06 | |
 | [ ] | 後 | Webcam | 人像分割模型產出 ID 遮罩 | 真人入鏡 | Main | |
@@ -75,17 +76,21 @@ Operator 的積木、配方與學習資源：[vfx-math-cheatsheet](vfx-math-chea
 | [lines-ridge-bump](refs/lines-ridge-bump.png) | 平行線被推出一道隆起 | 05 身影、04 漣漪 |
 | [lines-vortex-orbit](refs/lines-vortex-orbit.png) | 線條繞著中心旋成軌道 | 03 漩渦、06 交會 |
 | [particles-filaments-purple](refs/particles-filaments-purple.png) | 大量細小粒子擠在流場匯聚處，成為發光細絲 | 點子池 |
+| [person-silhouette-rim](refs/person-silhouette-rim.png) | 黑色人形剪影，線條繞著身體流動，邊緣最亮 | 05 身影、人的呈現 |
 
 ## 點子池
 
 還沒排進 sketch 的點子，組合 Main 時評估。
 
+- **辮子（意外發現）**：拔掉「原位 y」，讓 `y = 起伏 noise × 權重`。平靜區所有線疊成**一條線**，起伏區因為 noise 仍用各自原位 y 取樣而**散開交織成一束辮子**，再收回一條。「一條線分岔、交會、收束」。保存在 `Assets/_Project/VFX/Ideas/Idea_Braid.vfx`（02b 數值＋20 條線）；圖：[graph](refs/ideas/braid-graph.png)、[成果](refs/ideas/braid-result.png)
+  - 可能用法：待機時一條線，有人進場時從他身上分岔成辮子；或兩人交會時兩束辮子纏在一起
 - **發光細絲**（[參考](refs/particles-filaments-purple.png)）：幾十萬顆極小、半透明粒子被流場推著，擠在匯聚處的就疊加成亮絲。Sketch 01 Frequency 調高時「粒子被困住」就是雛形。可用在交會（兩人之間長出細絲）或痕跡（走過處沉澱成紋路再散開）
 - **幽靈訪客**：待機時偶爾在隨機位置冒出一圈很淡的漣漪，像剛有人經過（需要 04 漣漪場）
 - **牽線**：距離夠近的兩人之間長出細線，走遠時拉長、變細、斷掉
 - **抬手**：送出較大的漣漪（假人用右鍵模擬）
 - **集體共振**：很多人同時靜止時，漣漪干涉成克拉德尼圖形般的穩定幾何圖樣
 - **彗星尾巴**：02 的線改成固定長度、跟著筆尖跑的尾巴（墨跡壽命 = min(尾巴秒數, 筆尖剩餘壽命)）
+- **漩渦強度跟移動速度連動**：滑鼠／人移動越快漩渦越強，停下來變弱（互動小彩蛋）
 
 ## 驗收
 
