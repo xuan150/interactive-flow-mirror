@@ -1,0 +1,41 @@
+// Ripple field: one step of the 2D wave equation. Each texel stores (height now, height one step ago),
+// so reading one texture gives both frames the equation needs. C# swaps Src / Dst after every step (ping-pong).
+#pragma kernel Step
+
+Texture2D<float2> Src;
+RWTexture2D<float2> Dst;
+// xy = center in texels, z = radius in texels, w = amount. Only filled on the first step of a frame.
+StructuredBuffer<float4> Sources;
+int SourceCount;
+int2 Size;
+float Courant2;  // (wave speed * step time / texel size)^2; C# keeps it under the stability limit
+float Damping;   // per-step multiplier below 1, so waves fade out
+float EdgeWidth; // texels of extra damping at the border, so waves fade there instead of bouncing back
+
+float H(int2 p)
+{
+    return Src[clamp(p, 0, Size - 1)].x;
+}
+
+[numthreads(8, 8, 1)]
+void Step(uint3 id : SV_DispatchThreadID)
+{
+    int2 p = int2(id.xy);
+    if (any(p >= Size)) return;
+
+    float2 now = Src[p];
+    // Laplacian: how much higher the four neighbours are than this texel. That difference pulls the texel along.
+    float lap = H(p + int2(1, 0)) + H(p - int2(1, 0)) + H(p + int2(0, 1)) + H(p - int2(0, 1)) - 4 * now.x;
+    float next = 2 * now.x - now.y + Courant2 * lap;
+
+    int edge = min(min(p.x, p.y), min(Size.x - 1 - p.x, Size.y - 1 - p.y));
+    next *= Damping * lerp(0.9, 1, saturate(edge / EdgeWidth));
+
+    for (int i = 0; i < SourceCount; i++)
+    {
+        float2 d = float2(p) - Sources[i].xy;
+        next += Sources[i].w * exp(-dot(d, d) / (Sources[i].z * Sources[i].z));
+    }
+
+    Dst[p] = float2(next, now.x);
+}
