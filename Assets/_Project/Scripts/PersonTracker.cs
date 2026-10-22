@@ -19,6 +19,7 @@ namespace FlowMirror
             new(0.35f, 0.85f, 1f), new(1f, 0.55f, 0.35f), new(0.7f, 0.5f, 1f), new(0.45f, 1f, 0.6f),
         };
 
+        [Tooltip("VFX objects that receive the Persons buffer and PersonCount every frame.")]
         [SerializeField] VisualEffect[] targets;
         [Tooltip("Higher = velocity follows movement faster, lower = smoother.")]
         [SerializeField] float velocitySmoothing = 10f;

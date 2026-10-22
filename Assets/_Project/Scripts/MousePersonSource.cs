@@ -8,7 +8,9 @@ namespace FlowMirror
     [RequireComponent(typeof(PersonTracker))]
     public class MousePersonSource : MonoBehaviour
     {
+        [Tooltip("Camera used to turn the mouse position into world space. Empty = Main Camera.")]
         [SerializeField] Camera cam;
+        [Tooltip("How close the mouse must be to grab or remove a person; also the Gizmos circle size.")]
         [SerializeField] float pickRadius = 0.6f;
 
         PersonTracker tracker;
