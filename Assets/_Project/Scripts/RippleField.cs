@@ -15,9 +15,7 @@ namespace FlowMirror
         const int MaxSources = 32;
         // The 2D wave equation blows up above ~0.707; clamp so any Wave Speed stays stable.
         const float MaxCourant = 0.7f;
-        // World area the field covers, centered on the origin = the camera view (Size 5, 2:1).
-        // Vortex.hlsl samples with the same 20 x 10; change both together.
-        static readonly Vector2 Area = new(20f, 10f);
+        static readonly Vector2 Area = PersonTracker.Area;
 
         static readonly int RippleTexId = Shader.PropertyToID("RippleTex");
         static readonly int SrcId = Shader.PropertyToID("Src");

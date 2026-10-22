@@ -10,6 +10,9 @@ namespace FlowMirror
     {
         // Fixed: the GPU buffer is sized once in OnEnable, and Vortex.hlsl loops over at most 8.
         public const int MaxPersons = 8;
+        // World area the fields and masks cover, centered on the origin = the camera view (Size 5, 2:1).
+        // Vortex.hlsl and Silhouette.hlsl hardcode the same 20 x 10; change them together.
+        public static readonly Vector2 Area = new(20f, 10f);
 
         static readonly int PersonsId = Shader.PropertyToID("Persons");
         static readonly int PersonCountId = Shader.PropertyToID("PersonCount");
