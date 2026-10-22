@@ -23,20 +23,27 @@ float Influence(float2 p, float2 center, float radius)
 /// coreRadius: Radius of the black hole.
 /// coreSoftness: Width of the fade from black back to full brightness, outside coreRadius.
 /// time: Total Time.
+/// ripple: Connect the RippleTex property (height field from RippleField). Unconnected = no ripples.
+/// rippleHeight: How far a ripple crest lifts the lines, in world units. 0 = off.
+/// rippleGlow: Extra brightness on ripple crests. 0 = off.
 void Vortex(inout VFXAttributes attributes, StructuredBuffer<Person> persons, int count, float2 rest, float wave,
             float radius, float maxAngle, float pull, float glow, float streak, float streakSpacing, float streakSpeed,
-            float coreRadius, float coreSoftness, float time)
+            float coreRadius, float coreSoftness, float time, VFXSampler2D ripple, float rippleHeight, float rippleGlow)
 {
     int n = min(count, 8);
 
-    // Pass 1: inside a vortex the idle wave calms down to 20%, so the spiral keeps a stable shape.
+    // Ripple height at the home position. The field covers the camera view, 20 x 10 centered on the origin
+    // (RippleField.Area). Level 0 because Update runs as a compute shader, which can't pick a mip on its own.
+    float rippleH = SampleTexture(ripple, rest / float2(20, 10) + 0.5, 0).x;
+
+    // Pass 1: inside a vortex the idle wave and ripples calm down to 20%, so the spiral keeps a stable shape.
     float claim = 0;
     for (int i = 0; i < n; i++)
         claim += Influence(rest, persons[i].position, radius);
-    float2 p = rest + float2(0, wave * (1 - 0.8 * saturate(claim)));
+    float2 p = rest + float2(0, (wave + rippleH * rippleHeight) * (1 - 0.8 * saturate(claim)));
 
     // Pass 2: pull toward each person and twist around them. The shape is fixed; motion comes from light.
-    float brightness = 1;
+    float brightness = 1 + rippleGlow * saturate(rippleH);
     float hole = 1;
     for (int j = 0; j < n; j++)
     {
