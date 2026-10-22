@@ -54,7 +54,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 | [x] | 01 | Flow | VFX Graph 四區塊、Turbulence、Bloom | 會流動的發光粒子 | — | [01-flow](sketches/01-flow.md) |
 | [x] | 02 | Lines | Particle Strip、漸層、透明疊加 | 流場線條（探索，待機改由 02b） | 01 | [02-lines](sketches/02-lines.md) |
 | [x] | 02b | Line Field | Operator、Single Burst、stripIndex、Total Time、noise | **待機畫面完成** | 02 | [02b-line-field](sketches/02b-line-field.md) |
-| [ ] | 03 | Vortex | C# → GraphicsBuffer → VFX；滑鼠假人成為漩渦 | 線條被滑鼠捲動 | 02b | [03-vortex](sketches/03-vortex.md) |
+| [x] | 03 | Vortex | C# → GraphicsBuffer → VFX、Custom HLSL；滑鼠假人成為漩渦 | 線條被捲成螺旋、中心黑洞（強度淡入延後到 06） | 02b | [03-vortex](sketches/03-vortex.md) |
 | [ ] | 04 | Ripple | Compute shader、ping-pong RT、波動方程 | 點擊產生漣漪並干涉 | 03（可獨立先做） | |
 | [ ] | 05 | Silhouette | ID 遮罩蓋印、黑色剪影、線條繞流、邊緣光暈 | 身影浮現 | 03 | |
 | [ ] | 06 | Exchange | 顏色交換＋痕跡場 | 交會帶走彼此顏色、軌跡沉澱 | 03、05 | |

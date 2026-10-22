@@ -145,24 +145,47 @@ v2 的「往內流」其實是扭轉強度一緊一鬆，看起來像把線擰�
 1. 刪掉 Output 的第三個漸層 Block（光暈用的那個）和接它的 Get `vortexGlow` → Multiply → Add；Blackboard 的 `vortexGlow` 也可刪
 2. HLSL Block 輸入改為：glow **0.6**、streak **2**、streakSpacing **1.2**、streakSpeed **0.6**（flowSpeed 移除）
 
-## 交接（2026-10-22，下一個對話從這裡開始）
+> v3 的光「看起來沒效果」不是管線壞掉：glow 暫時改 20 立刻變亮，只是 0.6 太弱、範圍又只在人周圍一小圈。
 
-**目前狀態**：①② 完成（假人可操作、資料傳進 VFX）。③ 漩渦 v3：螺旋形狀固定、吸入、待機起伏在漩渦內降到 20%。檔名實際是 `LineVotex.vfx`、場景 `Sketch_03_votex`（少了 r）。
+### ③+++ 黑洞核心（v4）
 
-**待解問題（依優先）**
-1. **HLSL 寫 `attributes.color` 沒有可見效果**：glow 0.6、streak 2 都有填，截圖卻完全沒有變亮。先確認 Update 寫的 color 有沒有被 Output 的漸層 Block（Composition Multiply）乘上；必要時改回在 Output 接光暈
-2. **黑洞感**（使用者的判斷）：中心要**變暗、吞掉線**（越近越暗，到中心消失），光流進去才像被吃掉；也呼應「人是黑色剪影」。在 HLSL 的亮度裡乘上 `1 − core(距離)`
-3. **只能加到 4 人**：場景存的 MaxPersons 是 8；之前曾在 Play 中途改大造成 buffer 太小（`SetData ... 208 bytes`）。建議 `MaxPersons` 改回 `const 8`（HLSL 迴圈上限也是 8）
-4. **螺旋有折角**：每條線 100 點太少，改 300（Burst 6000、Particle Per Strip Count 300、Divide 300 / 299）
-5. 待機起伏 range 還是 -0.82 ~ 1.28，要降到約 ±0.3（對比原則）
+使用者的判斷：中心要**變暗、吞掉線**，光流進去才像被吃掉；也呼應「人是黑色剪影」（05）。
 
-**若光流＋變暗仍不像黑洞**：疊一層真的往中心掉的粒子（點子池：發光細絲），或停下來重新腦力激盪「人和線的關係」（推開、穿過、纏住…）。
+第一版「越近越暗、到中心才是 0」不夠黑：暗區和光暈最強的地方重疊，亮度 (1 + glow × w) 把暗抵消掉，加上 Bloom 把周圍的光暈進洞裡。
+改成**實心黑盤＋外圈漸變**，光暈的峰值被推到黑盤外緣，自然成為一圈亮環（像吸積盤圍著事件視界）：
 
-**溝通備忘**：使用者的 Output 用「用值查漸層」配方（值接漸層 Sample Time），不是 Multiply Color；改 Output 前先讀檔確認 Block 類型與 Composition / Color Mode。
+```
+hole  = Π smoothstep(coreRadius, coreRadius + coreSoftness, 距離)   ← 每人相乘，重疊的兩個洞都保持黑
+亮度 ×= hole
+```
 
-### ④ 漩渦慢慢成形（強度淡入淡出）
+1. 確認 graph 的 **Auto Compile** 是關的，存好 `Vortex.hlsl` 後回 Unity，HLSL Block 會多出 **coreRadius**、**coreSoftness**
+2. 填值後手動 Compile、存檔。所有欄位滑鼠停著都有 tooltip（寫在 HLSL 參數上方的 `/// 參數: 說明`）
+3. 螺旋折角：每條線 100 點 → **300**：Capacity 4000 → **12000**、Particle Per Strip Count **300**（Strip Capacity 維持 40）、Burst Count **12000**、兩個 Divide 的 b 改 **300** / **299**
+4. 還不夠黑時：Volume 的 Bloom scatter 0.7 → 約 0.4（光暈收緊，不會填進洞裡）
 
-（做到時補上）人出現時強度 0 → 1，線條逐漸被捲進去；離開時慢慢放開。會改到 `Person`（加 strength）、HLSL、PersonTracker。
+另外 `PersonTracker.MaxPersons` 改成 `const 8`：buffer 只在 OnEnable 依當時的值開一次，Play 中途改大會 `SetData ... 208 bytes`（= 4 人 × 52 bytes）。
+
+### ④ 漩渦慢慢成形（延後）
+
+人出現時強度 0 → 1，線條逐漸被捲進去；離開時慢慢放開。會改到 `Person`（加 strength）、HLSL、PersonTracker。
+03 先停在 v4，這步留到 06（離開留痕）或 Main 一起做：「離開時慢慢放開」和痕跡淡出是同一件事。
+
+## 交接（2026-10-22，03 結束）
+
+**目前狀態**：03 完成到 ③+++ v4。滑鼠假人（最多 8）→ GraphicsBuffer → `Vortex.hlsl`：吸入＋扭轉成固定螺旋、亮帶沿螺旋臂流進中心、中心實心黑盤＋外圈亮環。檔名實際是 `LineVotex.vfx`、場景 `Sketch_03_votex`（少了 r）。
+
+**沒做／未確認**
+- ④ 強度淡入淡出：延後（見上）
+- 待機起伏 range：graph 裡有一個 noise range 已是 (-0.3, 0.3)，但沒確認它就是起伏用的那個
+- 黑洞若還是不夠「被吞掉」：疊一層真的往中心掉的粒子（點子池：發光細絲）
+
+**溝通備忘**：使用者的 Output 用「用值查漸層」配方（值接漸層 Sample Time），兩個漸層 Block 都是 Composition Multiply、Color Mode Color；Update 寫進 `color` 的亮度會被乘上去。改 Output 前先讀 .vfx 確認。
+
+**給 04 Ripple 的接點**（新對話開始時先討論，不要直接照做）
+- 位置現在**全由 `Vortex.hlsl` 寫入**（Set Position 已刪）。漣漪高度要嘛當成 HLSL 的新輸入（和 `wave` 一樣加在 y），要嘛在 HLSL Block 後面再加一個 Add Position
+- 漣漪的波源是「進場」與「移動」：PersonTracker 已有 Add / Move / velocity，可以從這裡把事件交給漣漪場
+- ROADMAP 寫 04 可獨立先做：可以從 02b 場景複製，先只用滑鼠點擊當波源，驗證波動方程後再接 03 的人
 
 ## 小實驗
 
@@ -170,7 +193,8 @@ v2 的「往內流」其實是扭轉強度一緊一鬆，看起來像把線擰�
 
 ## 我的數值與筆記
 
-- 漩渦半徑 __
-- 最大扭轉角 __
-- 擺動週期 __
-- 觀察：
+- 漩渦半徑 radius 2.5、最大扭轉角 maxAngle 4、吸入 pull 0.35
+- 光：glow 20、streak 2、streakSpacing 1.2、streakSpeed 0.6
+- 黑洞：coreRadius 0.3、coreSoftness 0.8
+- 每條線 300 點、40 條
+- 觀察：錨定的線不可能真的流進中心，「被吸進去」要靠光往內流＋中心變黑；暗區要是實心的，漸暗會被光暈抵消
