@@ -10,7 +10,7 @@ namespace FlowMirror
     {
         [Tooltip("Camera used to turn the mouse position into world space. Empty = Main Camera.")]
         [SerializeField] Camera cam;
-        [Tooltip("How close the mouse must be to grab or remove a person; also the Gizmos circle size.")]
+        [Tooltip("How close the mouse must be to grab or remove a person, measured from its center.")]
         [SerializeField] float pickRadius = 0.6f;
 
         PersonTracker tracker;
@@ -59,17 +59,6 @@ namespace FlowMirror
                 best = p.id;
             }
             return best;
-        }
-
-        // ponytail: Gizmos marker only shows with the Game view Gizmos toggle on; replaced by the silhouette in Sketch 05.
-        void OnDrawGizmos()
-        {
-            if (!tracker) return;
-            foreach (var p in tracker.Persons)
-            {
-                Gizmos.color = p.id == hovered ? Color.white : new Color(1f, 1f, 1f, 0.35f);
-                Gizmos.DrawWireSphere(p.position, pickRadius);
-            }
         }
     }
 }
