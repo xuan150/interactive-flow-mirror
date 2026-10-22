@@ -8,7 +8,8 @@ namespace FlowMirror
     // Person-state layer: owns the person list, derives velocity, uploads to the GPU every frame.
     public class PersonTracker : MonoBehaviour
     {
-        public int MaxPersons = 8;
+        // Fixed: the GPU buffer is sized once in OnEnable, and Vortex.hlsl loops over at most 8.
+        public const int MaxPersons = 8;
 
         static readonly int PersonsId = Shader.PropertyToID("Persons");
         static readonly int PersonCountId = Shader.PropertyToID("PersonCount");
