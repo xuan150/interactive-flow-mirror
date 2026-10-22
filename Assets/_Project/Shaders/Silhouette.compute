@@ -1,0 +1,69 @@
+// ID mask (ADR 0001). Stamp draws the silhouette picture at each person into Hard: (person index + 1, coverage),
+// (0, 0) = nobody; later people overwrite earlier ones where they overlap. BlurX then BlurY spread Hard into a
+// soft body around each person, and BlurY writes Mask = (hard index, hard coverage, soft index, soft coverage).
+#pragma kernel Stamp
+#pragma kernel BlurX
+#pragma kernel BlurY
+
+Texture2D<float4> Silhouette;
+SamplerState sampler_linear_clamp;
+RWTexture2D<float2> Hard;
+Texture2D<float2> HardIn;
+RWTexture2D<float2> Blurred;
+Texture2D<float2> BlurredIn;
+RWTexture2D<float4> Mask;
+float4 Positions[8]; // xy = person position in world units
+int Count;
+int2 Size;           // mask texels
+float2 Area;         // world area the mask covers, centered on the origin
+float2 BodySize;     // world size of the silhouette picture
+float SoftRadius;    // blur reach in texels (gaussian sigma = half of it)
+
+[numthreads(8, 8, 1)]
+void Stamp(uint3 id : SV_DispatchThreadID)
+{
+    int2 p = int2(id.xy);
+    if (any(p >= Size)) return;
+
+    float2 world = ((p + 0.5) / Size - 0.5) * Area;
+    float index = 0;
+    for (int i = 0; i < Count; i++)
+    {
+        float2 uv = (world - Positions[i].xy) / BodySize + 0.5;
+        if (any(uv < 0) || any(uv > 1)) continue;
+        if (Silhouette.SampleLevel(sampler_linear_clamp, uv, 0).a > 0.5) index = i + 1;
+    }
+
+    Hard[p] = float2(index, index > 0);
+}
+
+// Gaussian along one axis; running it along x then y gives a smooth 2D blur at 2r reads per texel instead of r^2.
+float2 Blur(Texture2D<float2> source, int2 p, int2 axis)
+{
+    int r = (int)ceil(SoftRadius);
+    float2 sum = 0;
+    float total = 0;
+    for (int i = -r; i <= r; i++)
+    {
+        float w = exp(-2.0 * i * i / max(SoftRadius * SoftRadius, 1));
+        sum += w * source[clamp(p + i * axis, 0, Size - 1)];
+        total += w;
+    }
+    return sum / total;
+}
+
+[numthreads(8, 8, 1)]
+void BlurX(uint3 id : SV_DispatchThreadID)
+{
+    int2 p = int2(id.xy);
+    if (any(p >= Size)) return;
+    Blurred[p] = Blur(HardIn, p, int2(1, 0));
+}
+
+[numthreads(8, 8, 1)]
+void BlurY(uint3 id : SV_DispatchThreadID)
+{
+    int2 p = int2(id.xy);
+    if (any(p >= Size)) return;
+    Mask[p] = float4(HardIn[p], Blur(BlurredIn, p, int2(0, 1)));
+}
