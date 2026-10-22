@@ -9,21 +9,23 @@ float Influence(float2 p, float2 center, float radius)
     return w * w;
 }
 
-/// persons: the Persons property (GraphicsBuffer)
-/// count: the PersonCount property
-/// rest: the point's home position (the two Lerps)
-/// wave: idle undulation offset in y (noise × mask)
-/// radius: how far each vortex reaches
-/// maxAngle: twist at the center, in radians (3.14 = half a turn)
-/// pull: 0 ~ 1, how much points are drawn toward the person
-/// glow: extra brightness near a person (0 = none)
-/// streak: brightness of the light flowing into the center (0 = none)
-/// streakSpacing: distance between two streaks
-/// streakSpeed: how fast streaks fall into the center
-/// time: Total Time
+/// persons: Connect the Persons property (GraphicsBuffer from PersonTracker).
+/// count: Connect the PersonCount property.
+/// rest: The point's home position before any motion (connect the x / y Lerps).
+/// wave: Idle undulation offset in y.
+/// radius: How far each vortex reaches, in world units. Bigger = more lines get twisted.
+/// maxAngle: Twist at the center, in radians (3.14 = half a turn).
+/// pull: 0 ~ 1. How much points are drawn toward the person. 0 = twist only, 1 = collapse onto the center.
+/// glow: Extra brightness near a person.
+/// streak: Brightness of the light bands running along the spiral into the center. 0 = none.
+/// streakSpacing: Distance between two light bands, in world units.
+/// streakSpeed: How fast the light bands fall into the center. Negative = flow outward.
+/// coreRadius: Radius of the black hole.
+/// coreSoftness: Width of the fade from black back to full brightness, outside coreRadius.
+/// time: Total Time.
 void Vortex(inout VFXAttributes attributes, StructuredBuffer<Person> persons, int count, float2 rest, float wave,
             float radius, float maxAngle, float pull, float glow, float streak, float streakSpacing, float streakSpeed,
-            float time)
+            float coreRadius, float coreSoftness, float time)
 {
     int n = min(count, 8);
 
@@ -35,6 +37,7 @@ void Vortex(inout VFXAttributes attributes, StructuredBuffer<Person> persons, in
 
     // Pass 2: pull toward each person and twist around them. The shape is fixed; motion comes from light.
     float brightness = 1;
+    float hole = 1;
     for (int j = 0; j < n; j++)
     {
         float2 center = persons[j].position;
@@ -54,7 +57,13 @@ void Vortex(inout VFXAttributes attributes, StructuredBuffer<Person> persons, in
         float band = pow(0.5 + 0.5 * sin(phase * 6.2831853), 8);
 
         brightness += w * (glow + streak * band);
+
+        // Black hole: fully black inside coreRadius, fading back over coreSoftness. Glow peaks at the hole's
+        // edge, so a bright ring surrounds the dark disk. Multiplied per person, so overlapping holes both stay dark.
+        // max() keeps smoothstep valid when coreSoftness is 0 (hard edge).
+        hole *= smoothstep(coreRadius, coreRadius + max(coreSoftness, 1e-4), length(offset));
     }
+    brightness *= hole;
 
     // Assign whole attributes: VFX only detects writes like `attributes.position =` or a one-letter swizzle,
     // so `attributes.position.xy = p` would silently be treated as read-only and discarded.
