@@ -1,0 +1,17 @@
+{
+    "name": "FlowMirror",
+    "rootNamespace": "FlowMirror",
+    "references": [
+        "Unity.VisualEffectGraph.Runtime",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
