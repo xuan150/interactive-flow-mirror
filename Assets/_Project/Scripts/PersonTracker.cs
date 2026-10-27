@@ -5,7 +5,7 @@ using UnityEngine.VFX;
 
 namespace FlowMirror
 {
-    // Person-state layer: owns the person list, derives velocity, uploads to the GPU every frame.
+    // Person-state layer: owns the person list, derives velocity, exchanges colors, uploads to the GPU every frame.
     public class PersonTracker : MonoBehaviour
     {
         // Fixed: the GPU buffer is sized once in OnEnable, and Vortex.hlsl loops over at most 8.
@@ -26,6 +26,14 @@ namespace FlowMirror
         [SerializeField] VisualEffect[] targets;
         [Tooltip("Higher = velocity follows movement faster, lower = smoother.")]
         [SerializeField] float velocitySmoothing = 10f;
+
+        [Header("Color exchange")]
+        [Tooltip("How close two bodies must come, in world units, before they start taking each other's color. Same meaning as seepRadius in the Silhouette block.")]
+        [SerializeField, Min(0.01f)] float exchangeGap = 1.5f;
+        [Tooltip("How fast colors seep between two people standing together, per second.")]
+        [SerializeField, Min(0f)] float exchangeRate = 1f;
+        [Tooltip("How fast a carried color fades back to the person's own, per second. 0.05 = mostly back after about a minute.")]
+        [SerializeField, Min(0f)] float returnRate = 0.05f;
 
         readonly List<Person> persons = new();
         readonly List<Vector2> previousPositions = new();
@@ -88,6 +96,7 @@ namespace FlowMirror
                     persons[i] = p;
                     previousPositions[i] = p.position;
                 }
+                ColorExchange.Step(persons, dt, exchangeGap, exchangeRate, returnRate);
             }
 
             if (persons.Count > 0) buffer.SetData(persons);
