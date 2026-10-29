@@ -190,7 +190,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 40000
+      m_SerializableObject: 50000000
     m_Space: -1
   m_Property:
     name: Rate
@@ -291,7 +291,7 @@ MonoBehaviour:
   - {fileID: 8926484042661614662}
   - {fileID: 8926484042661614681}
   dataType: 0
-  capacity: 40000
+  capacity: 100000
   stripCapacity: 1
   particlePerStripCount: 32
   needsComputeBounds: 0
@@ -665,7 +665,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: UnityEditor.VFX.AABox, Unity.VisualEffectGraph.Editor,
           Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-      m_SerializableObject: '{"center":{"x":0.0,"y":0.0,"z":0.0},"size":{"x":22.0,"y":12.0,"z":4.0}}'
+      m_SerializableObject: '{"center":{"x":0.0,"y":0.0,"z":15.0},"size":{"x":90.0,"y":40.0,"z":80.0}}'
     m_Space: 0
   m_Property:
     name: bounds
