@@ -299,7 +299,10 @@ VisualEffect:
   m_ResourceVersion: 1
   m_PropertySheet:
     m_Float:
-      m_Array: []
+      m_Array:
+      - m_Value: 0.8
+        m_Name: Color Spread
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -331,6 +334,7 @@ GameObject:
   - component: {fileID: 1543335431}
   - component: {fileID: 1543335433}
   - component: {fileID: 1543335432}
+  - component: {fileID: 1543335434}
   m_Layer: 0
   m_Name: L09 Reflect
   m_TagString: Untagged
@@ -417,7 +421,52 @@ VisualEffect:
   m_ResourceVersion: 1
   m_PropertySheet:
     m_Float:
-      m_Array: []
+      m_Array:
+      - m_Value: 0.45
+        m_Name: Alpha
+        m_Overridden: 1
+      - m_Value: 1
+        m_Name: Brightness
+        m_Overridden: 1
+      - m_Value: 0
+        m_Name: Color Shift
+        m_Overridden: 1
+      - m_Value: 0.8
+        m_Name: Color Spread
+        m_Overridden: 1
+      - m_Value: 0.6
+        m_Name: Distance Fade
+        m_Overridden: 1
+      - m_Value: 0.7
+        m_Name: Event Glow
+        m_Overridden: 1
+      - m_Value: 5
+        m_Name: Extend Length
+        m_Overridden: 1
+      - m_Value: 0.55
+        m_Name: Far Alpha
+        m_Overridden: 1
+      - m_Value: 0.6
+        m_Name: Gather Pull
+        m_Overridden: 1
+      - m_Value: -0.8
+        m_Name: Horizon Height
+        m_Overridden: 1
+      - m_Value: 0.25
+        m_Name: Horizon Line
+        m_Overridden: 1
+      - m_Value: 0.1
+        m_Name: Horizon Wave
+        m_Overridden: 1
+      - m_Value: 0.4
+        m_Name: Reflection
+        m_Overridden: 1
+      - m_Value: 0.035
+        m_Name: Size
+        m_Overridden: 1
+      - m_Value: 1.8
+        m_Name: Split Gap
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -438,6 +487,19 @@ VisualEffect:
       m_Array: []
     m_Bool:
       m_Array: []
+--- !u!114 &1543335434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1543335430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c98ad6cb65c3da945b803339e115e515, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.Lookdev09.L09Mirror
+  world: {fileID: 791721004}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
