@@ -13,8 +13,7 @@ namespace FlowMirror.Lookdev09
 
         static readonly string[] Names =
         {
-            "Alpha", "Size", "Brightness", "Distance Fade", "Far Alpha", "Horizon Height", "Horizon Wave", "Reflection",
-            "Horizon Line", "Color Spread", "Color Shift", "Split Gap", "Gather Pull", "Extend Length", "Event Glow",
+            "Dot Opacity", "Dot Size", "Brightness", "Distance Haze", "Far Layer Opacity", "Horizon Height", "Horizon Waviness", "Mirror Strength", "Horizon Glow", "Color Variety", "Color Warmth", "Split Distance", "Gather Strength", "Extend Reach", "Event Glow", "Detach Amount", "New Ribbon Length", "Drift Distance", "New Ribbon Twist", "New Ribbon Flow",
         };
 
         VisualEffect mirror;
