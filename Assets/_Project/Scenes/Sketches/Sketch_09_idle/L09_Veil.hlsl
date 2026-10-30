@@ -38,6 +38,11 @@ static float L09_GAP = 1.8;
 static float L09_GATHER = 0.6;
 static float L09_EXTEND = 5.0;
 static float L09_GLOW = 0.7;
+static float L09_DETACH = 0.35;
+static float L09_CSIZE = 5.0;
+static float L09_DRIFT = 7.0;
+static float L09_SPIN = 1.5;
+static float L09_TRAIL = 0.06;
 
 // Horizon: a wavy line on the screen, at height L09_HORIZON on average (screen -1..1), rising and falling by L09_WAVE and
 // drifting slowly. The camera is at z = L09_CAM_Z looking straight ahead, vertical FOV 35, aspect 2:1. Every particle is
@@ -111,6 +116,24 @@ static const uint L09_EVENT_R[L09_EVENT_RIBBONS] = { 1, 3, 4 };
 #define L09_MERGE 1.15
 #define L09_SWAY 0.35
 #define L09_DEPTH 0.35
+
+// ---- Experiment: detach. With L09_EXPERIMENT 1 only this event runs (on ribbon L09_EXP_RIBBON), instead of split / gather /
+// extend. In a stretch of the ribbon about a third of the particles, picked by the particle itself, leave one by one and
+// rebuild themselves as a small new ribbon of their own: a centerline of its own, the same strands they had, its own twist,
+// width and flow. It grows out of the spot they left, drifts along a bent path that has nothing to do with the old
+// ribbon's waves (crossing the other ribbons), then loosens and each particle finds its way back. The other particles
+// never move.
+#define L09_EXPERIMENT 1
+#define L09_EXP_RIBBON 1
+// Seconds: departures spread over L09_D_LEAVE (each takes 2.5-4.5 s itself), the cluster then drifts for L09_D_DRIFT, and the
+// returns spread over L09_D_RETURN (each takes 3-5 s itself). The total must stay above the last return: 8 + 10 + 12 = 30.
+#define L09_D_LEAVE 8.0
+#define L09_D_DRIFT 10.0
+#define L09_D_RETURN 12.0
+// What makes the cluster readable as a group: its particles slide along the palette by this much and get a bit brighter,
+// and it drifts mostly upward, into the darker part of the frame.
+#define L09_CLUSTER_HUE 0.3
+#define L09_CLUSTER_GLOW 1.3
 
 struct L09Fx
 {
@@ -234,6 +257,97 @@ void L09_Evolve(uint r, float u, float v, uint id, float h, float time, uint slo
     }
 }
 
+struct L09Mini
+{
+    float3 o;       // where the event started, on the old ribbon (fixed in the world)
+    float2 path;    // how far the new ribbon has drifted from there
+    float2 al;      // direction of its length
+    float2 pe;      // across it
+    float len;      // its length
+    float dz;       // depth drift
+    float4 ph;      // phases that make it its own shape
+};
+
+/// Hidden
+float3 L09_MiniAt(L09Mini m, float sp, float e)
+{
+    // A point on the new ribbon's centerline: a short bent line, wavy across and in depth.
+    float2 xy = m.o.xy + m.path + m.al * ((sp - 0.5) * m.len) + m.pe * (0.18 * m.len * sin(L09_TAU * (0.9 * sp + 0.05 * e + m.ph.x)));
+    float z = m.o.z + m.dz + 0.15 * m.len * sin(L09_TAU * (0.7 * sp + m.ph.y));
+    return float3(xy, z);
+}
+
+/// Hidden
+float L09_Detach(uint r, uint id, float v, float time, inout float3 pos, inout float endFade)
+{
+    // Moves a particle of ribbon r toward / along / away from the new ribbon. Returns how far gone it is, 0 .. 1.
+    const float total = L09_D_LEAVE + L09_D_DRIFT + L09_D_RETURN;
+    const float cycle = total + L09_GAP_MIN + L09_GAP_JIT;
+    float k = floor(time / cycle);
+    uint seed = (uint)k * 31u + 11u;
+    float start = k * cycle + (k < 0.5 ? L09_START : L09_GAP_JIT * L09_Rand(seed, 20));
+    float e = time - start;
+    if (e <= 0.0 || e >= total) return 0.0;
+    if (r != L09_EXP_RIBBON) return 0.0;
+
+    // Who takes part: decided by where the particle sits on the ribbon when the event starts, so it never changes
+    // while the event runs. The share fades out toward the ends of the stretch, so there is no hard edge.
+    float span = L09_SPAN / L09_LL[L09_RL[r]];
+    float uc = 0.5 + (L09_Rand(seed, 31) - 0.5) * 0.3;
+    float us = frac(L09_Rand(id, 1) + start * L09_FLOW * (0.5 + L09_Rand(id, 2)));
+    float edge = saturate(abs(us - uc) / (0.5 * span));
+    if (L09_Rand(id + seed * 7919u, 57) > L09_DETACH * (1.0 - smoothstep(0.5, 1.0, edge))) return 0.0;
+
+    // Each particle has its own time to leave and to come back, so the stretch thins out and refills gradually.
+    float leaveAt = L09_Rand(id, 50) * L09_D_LEAVE * 0.5;
+    float leaveFor = 2.5 + 2.0 * L09_Rand(id, 51);
+    float backAt = L09_D_LEAVE + L09_D_DRIFT + 6.0 * L09_Rand(id, 52);
+    float backFor = 3.0 + 2.0 * L09_Rand(id, 53);
+    float away = smoothstep(leaveAt, leaveAt + leaveFor, e) * (1.0 - smoothstep(backAt, backAt + backFor, e));
+    if (away <= 0.0) return 0.0;
+
+    // The new ribbon: starts where the event began (not following the old ribbon's waves), drifts upward-ish along a bent
+    // path of its own with a slow wobble, and turns as it goes. Its length grows out of the spot, then loosens.
+    float a = 1.5708 + (L09_Rand(seed, 41) - 0.5) * 2.4;
+    float2 dir = float2(cos(a), sin(a));
+    float2 perp = float2(-dir.y, dir.x);
+    float sgn = L09_Rand(seed, 42) < 0.5 ? -1.0 : 1.0;
+    float prog = smoothstep(0.0, L09_D_LEAVE + L09_D_DRIFT, e);
+    float loosen = 1.0 + 0.8 * smoothstep(L09_D_LEAVE + L09_D_DRIFT, total, e);
+    L09Mini m;
+    m.o = L09_Center(uc, r, start * L09_MOTION);
+    m.path = (dir * prog + perp * (0.3 * sgn) * sin(3.14159 * prog)) * L09_DRIFT
+           + perp * (0.12 * L09_DRIFT * sin(L09_TAU * (0.05 * e + L09_Rand(seed, 43))))
+           + dir * (0.15 * L09_DRIFT * smoothstep(L09_D_LEAVE + L09_D_DRIFT, total, e));
+    float turn = a + 0.9 + 0.9 * sgn * prog;
+    m.al = float2(cos(turn), sin(turn));
+    m.pe = float2(-m.al.y, m.al.x);
+    m.len = L09_CSIZE * (0.3 + 0.7 * smoothstep(0.0, L09_D_LEAVE, e)) * loosen;
+    m.dz = (L09_Rand(seed, 44) - 0.5) * 6.0 * prog;
+    m.ph = float4(L09_Rand(seed, 45), L09_Rand(seed, 46), L09_Rand(seed, 47), L09_Rand(seed, 48));
+
+    // This particle's place on it: it runs along the new ribbon at its own speed, fading at the two ends (where it wraps).
+    float sp = frac(L09_Rand(id, 60) + e * L09_TRAIL * (0.5 + L09_Rand(id, 2)));
+    float3 c = L09_MiniAt(m, sp, e);
+    float3 T = normalize(L09_MiniAt(m, sp + 0.02, e) - L09_MiniAt(m, sp - 0.02, e));
+    float3 A = normalize(cross(T, float3(0, 0, 1)));
+    float3 B = cross(T, A);
+    float phi = L09_TAU * (L09_SPIN * sp + 0.03 * e + m.ph.z);
+    float3 W = cos(phi) * A + sin(phi) * B;
+    float3 N = cross(T, W);
+    float width = 0.13 * m.len * (0.35 + 0.65 * (0.5 + 0.5 * sin(L09_TAU * (1.3 * sp - 0.04 * e + m.ph.w))));
+    float vs = sign(v) * pow(abs(v), 1.35);                 // the same strand, bunched a little toward the middle
+    float3 goal = c + W * (vs * width) + N * ((L09_Rand(id, 59) - 0.5) * 0.4 * width * (0.5 + 0.5 * sin(L09_TAU * (2.1 * sp + m.ph.x))));
+    endFade = lerp(endFade, smoothstep(0.0, 0.15, sp) * smoothstep(1.0, 0.85, sp), away);
+
+    // On the way each particle bows a little to one side, so they fan out instead of running in parallel lines.
+    float3 delta = goal - pos;
+    float2 side = normalize(float2(-delta.y, delta.x) + 1e-5);
+    pos = lerp(pos, goal, away);
+    pos.xy += side * (0.25 * length(delta) * sin(3.14159 * away) * (2.0 * L09_Rand(id, 45) - 1.0));
+    return away;
+}
+
 /// Hidden
 void L09_Core(inout VFXAttributes attributes, bool mirror)
 {
@@ -280,7 +394,7 @@ void L09_Core(inout VFXAttributes attributes, bool mirror)
     fx.vs = 1.0;
     fx.glow = 0.0;
     fx.ext = 0.0;
-#if L09_EVOLVE
+#if L09_EVOLVE && !L09_EXPERIMENT
     for (uint e = 0; e < L09_SLOTS; e++)
         L09_Evolve(r, u, v, id, h0, attributes.age, e, fx);
 #endif
@@ -300,15 +414,21 @@ void L09_Core(inout VFXAttributes attributes, bool mirror)
 
     float3 pos = c + W * (v * fx.vs * h + fx.dW) + N * ((L09_Rand(id, 5) - 0.5) * L09_THICK * s + fx.dN) + fx.ext;
 
+    float away = 0.0;
+    float endFade = 1.0;
+#if L09_EXPERIMENT
+    away = L09_Detach(r, id, v, attributes.age, pos, endFade);
+#endif
+
     float f = saturate(pos.z / L09_DEPTH_Z);
     float fade = smoothstep(0.0, 0.12, u) * smoothstep(1.0, 0.88, u);
     float alpha = L09_ALPHA * fade * (0.6 + 0.4 * L09_Rand(id, 6)) * (1.0 - 0.5 * saturate(halo / L09_HALO))
-                * lerp(1.0, L09_FAR_ALPHA, f) * (1.0 + fx.glow);
+                * lerp(1.0, L09_FAR_ALPHA, f) * (1.0 + fx.glow) * lerp(1.0, L09_CLUSTER_GLOW, away) * endFade;
 
     // Color: each ribbon has its own place in the palette, drifting slowly along its length; far things fade into the fog
     // color; the active stretch of an event turns toward a warm white.
     float hue = 0.5 + (L09_RC[r] - 0.5) * L09_COLOR_SPREAD + L09_COLOR_SHIFT
-              + 0.16 * sin(L09_TAU * (0.7 * u + 0.04 * t + 0.21 * r));
+              + 0.16 * sin(L09_TAU * (0.7 * u + 0.04 * t + 0.21 * r)) + L09_CLUSTER_HUE * away;
     float3 color = lerp(L09_Palette(hue), L09_FOG_COLOR, L09_FOG * f);
     color = lerp(color, float3(1.0, 0.80, 0.55), saturate(fx.glow * 0.5));
 
@@ -340,25 +460,31 @@ void L09_Core(inout VFXAttributes attributes, bool mirror)
 
 // The VFX Graph only keeps the attributes a block's function names itself, so each entry point lists them before
 // handing over to the shared body.
-/// alpha: Overall brightness of the dots (how much they add up where they overlap).
-/// size: Dot size in world units. Perspective makes far ones smaller.
-/// brightness: Color multiplier on top of alpha.
-/// fog: How far distant layers fade into the dark blue background (0 = not at all).
-/// farAlpha: Brightness of the farthest layer compared with the nearest.
-/// horizon: Average height of the wavy horizon, -1 (bottom) .. 1 (top). Mirror lives under it.
-/// wave: How much the horizon rises and falls.
-/// refl: Brightness of the mirror image under the horizon (the mirror object copies this from the world).
-/// lineAlpha: Brightness of the faint line drawn on the horizon.
-/// colorSpread: How different the ribbons' colors are (0 = all the same, 1 = whole palette).
-/// colorShift: Moves every ribbon along the palette (cold to warm).
-/// forkGap: Split event: how far the two branches part, in ribbon half-widths.
-/// gatherPull: Gather event: how strongly the stretch draws in (0..0.9).
-/// extendLen: Extend event: how far the strands sweep out, in world units.
-/// glow: Extra brightness of the part of a ribbon where an event is happening.
+/// alpha: How see-through the dots are. Higher = brighter, especially where dots overlap.
+/// size: Size of each dot. Far dots shrink by themselves (perspective).
+/// brightness: Multiplies every color. Raise for a brighter picture.
+/// fog: How much the far layers fade into the dark blue background. 0 = not at all.
+/// farAlpha: How bright the farthest layer is compared with the nearest. Lower = deeper space.
+/// horizon: Where the mirror line sits on screen. -1 is the bottom edge, 0 the middle.
+/// wave: How much the horizon line rises and falls.
+/// refl: How bright the reflection under the horizon is.
+/// lineAlpha: How bright the faint line along the horizon is.
+/// colorSpread: How different the ribbons' colors are. 0 = one color, 1 = the whole palette.
+/// colorShift: Slides all colors along the palette. Negative = cooler, positive = warmer.
+/// forkGap: Split event: how far the two branches pull apart.
+/// gatherPull: Gather event: how tightly the stretch draws in (0 - 0.9).
+/// extendLen: Extend event: how far the strands sweep out.
+/// glow: Extra brightness on the part of a ribbon where an event is happening.
+/// detachShare: Detach event: share of the particles in the stretch that leave to form the small cluster.
+/// clusterSize: Detach event: length of the new small ribbon.
+/// driftDist: Detach event: how far the new ribbon travels before it loosens and the particles return.
+/// clusterSpin: Detach event: how many turns the new ribbon twists along its length.
+/// clusterTrail: Detach event: how fast particles run along the new ribbon.
 void L09Veil(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
              in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
              in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
-             in float glow)
+             in float glow, in float detachShare, in float clusterSize, in float driftDist, in float clusterSpin,
+             in float clusterTrail)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -370,28 +496,35 @@ void L09Veil(inout VFXAttributes attributes, in float alpha, in float size, in f
     L09_HORIZON = horizon; L09_WAVE = wave; L09_REFL = refl; L09_LINE_ALPHA = lineAlpha;
     L09_COLOR_SPREAD = colorSpread; L09_COLOR_SHIFT = colorShift; L09_GAP = forkGap; L09_GATHER = gatherPull;
     L09_EXTEND = extendLen; L09_GLOW = glow;
+    L09_DETACH = detachShare; L09_CSIZE = clusterSize; L09_DRIFT = driftDist; L09_SPIN = clusterSpin; L09_TRAIL = clusterTrail;
     L09_Core(attributes, false);
 }
 
-/// alpha: Same as the world's (kept in step by L09_Mirror).
-/// size: Same as the world's.
-/// brightness: Same as the world's.
-/// fog: Same as the world's.
-/// farAlpha: Same as the world's.
-/// horizon: Same as the world's.
-/// wave: Same as the world's.
-/// refl: Brightness of the mirror image under the horizon (the mirror object copies this from the world).
-/// lineAlpha: Same as the world's (the line is drawn only by the world).
-/// colorSpread: Same as the world's.
-/// colorShift: Same as the world's.
-/// forkGap: Same as the world's.
-/// gatherPull: Same as the world's.
-/// extendLen: Same as the world's.
-/// glow: Same as the world's.
+/// alpha: How see-through the dots are. Higher = brighter, especially where dots overlap.
+/// size: Size of each dot. Far dots shrink by themselves (perspective).
+/// brightness: Multiplies every color. Raise for a brighter picture.
+/// fog: How much the far layers fade into the dark blue background. 0 = not at all.
+/// farAlpha: How bright the farthest layer is compared with the nearest. Lower = deeper space.
+/// horizon: Where the mirror line sits on screen. -1 is the bottom edge, 0 the middle.
+/// wave: How much the horizon line rises and falls.
+/// refl: How bright the reflection under the horizon is.
+/// lineAlpha: How bright the faint line along the horizon is.
+/// colorSpread: How different the ribbons' colors are. 0 = one color, 1 = the whole palette.
+/// colorShift: Slides all colors along the palette. Negative = cooler, positive = warmer.
+/// forkGap: Split event: how far the two branches pull apart.
+/// gatherPull: Gather event: how tightly the stretch draws in (0 - 0.9).
+/// extendLen: Extend event: how far the strands sweep out.
+/// glow: Extra brightness on the part of a ribbon where an event is happening.
+/// detachShare: Detach event: share of the particles in the stretch that leave to form the small cluster.
+/// clusterSize: Detach event: length of the new small ribbon.
+/// driftDist: Detach event: how far the new ribbon travels before it loosens and the particles return.
+/// clusterSpin: Detach event: how many turns the new ribbon twists along its length.
+/// clusterTrail: Detach event: how fast particles run along the new ribbon.
 void L09VeilReflect(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
                     in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
-                    in float colorSpread, in float colorShift, in float forkGap, in float gatherPull,
-                    in float extendLen, in float glow)
+                    in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
+                    in float glow, in float detachShare, in float clusterSize, in float driftDist, in float clusterSpin,
+                    in float clusterTrail)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -403,5 +536,6 @@ void L09VeilReflect(inout VFXAttributes attributes, in float alpha, in float siz
     L09_HORIZON = horizon; L09_WAVE = wave; L09_REFL = refl; L09_LINE_ALPHA = lineAlpha;
     L09_COLOR_SPREAD = colorSpread; L09_COLOR_SHIFT = colorShift; L09_GAP = forkGap; L09_GATHER = gatherPull;
     L09_EXTEND = extendLen; L09_GLOW = glow;
+    L09_DETACH = detachShare; L09_CSIZE = clusterSize; L09_DRIFT = driftDist; L09_SPIN = clusterSpin; L09_TRAIL = clusterTrail;
     L09_Core(attributes, true);
 }
