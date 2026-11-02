@@ -34,10 +34,10 @@ MonoBehaviour:
   categories: []
   uiBounds:
     serializedVersion: 2
-    x: 851
+    x: -48
     y: -1434
-    width: 476
-    height: 1936
+    width: 1376
+    height: 2016
 --- !u!114 &114350483966674976
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -77,12 +77,353 @@ MonoBehaviour:
   - {fileID: 8926484042661616052}
   - {fileID: 8926484042661616055}
   - {fileID: 8926484042661616058}
+  - {fileID: 8926484042661616060}
   m_UIPosition: {x: 0, y: 0}
   m_UICollapsed: 1
   m_UISuperCollapsed: 0
   m_UIInfos: {fileID: 114340500867371532}
   m_CustomAttributes: []
-  m_ParameterInfo: []
+  m_ParameterInfo:
+  - name: Dot Opacity
+    path: Dot Opacity
+    tooltip: How see-through the dots are. Higher = brighter, especially where dots
+      overlap.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.45
+    min: 0
+    max: 1.5
+    enumValues: []
+    descendantCount: 0
+  - name: Dot Size
+    path: Dot Size
+    tooltip: Size of each dot. Far dots shrink by themselves.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.035
+    min: 0.005
+    max: 0.12
+    enumValues: []
+    descendantCount: 0
+  - name: Brightness
+    path: Brightness
+    tooltip: Multiplies every color. Raise for a brighter picture.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 1
+    min: 0.2
+    max: 3
+    enumValues: []
+    descendantCount: 0
+  - name: Distance Haze
+    path: Distance Haze
+    tooltip: How much far layers fade into the dark blue background. 0 = not at all.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.6
+    min: 0
+    max: 1
+    enumValues: []
+    descendantCount: 0
+  - name: Far Layer Opacity
+    path: Far Layer Opacity
+    tooltip: How bright the farthest layer is. Lower = deeper space.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.55
+    min: 0.1
+    max: 1.2
+    enumValues: []
+    descendantCount: 0
+  - name: Horizon Height
+    path: Horizon Height
+    tooltip: Where the mirror line sits on screen. -1 = bottom edge.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: -0.8
+    min: -0.95
+    max: -0.3
+    enumValues: []
+    descendantCount: 0
+  - name: Horizon Waviness
+    path: Horizon Waviness
+    tooltip: How much the horizon line rises and falls.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.1
+    min: 0
+    max: 0.3
+    enumValues: []
+    descendantCount: 0
+  - name: Mirror Strength
+    path: Mirror Strength
+    tooltip: How bright the reflection under the horizon is.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.4
+    min: 0
+    max: 1
+    enumValues: []
+    descendantCount: 0
+  - name: Horizon Glow
+    path: Horizon Glow
+    tooltip: How bright the faint line along the horizon is.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.25
+    min: 0
+    max: 1
+    enumValues: []
+    descendantCount: 0
+  - name: Color Variety
+    path: Color Variety
+    tooltip: 0 = all ribbons share one color. Higher = more different colors.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 1
+    min: 0
+    max: 1.5
+    enumValues: []
+    descendantCount: 0
+  - name: Color Warmth
+    path: Color Warmth
+    tooltip: Slides all colors along the palette. Negative = cooler, positive = warmer.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0
+    min: -0.5
+    max: 0.5
+    enumValues: []
+    descendantCount: 0
+  - name: Split Distance
+    path: Split Distance
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 1.8
+    min: 0.3
+    max: 3
+    enumValues: []
+    descendantCount: 0
+  - name: Gather Strength
+    path: Gather Strength
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.6
+    min: 0
+    max: 0.9
+    enumValues: []
+    descendantCount: 0
+  - name: Extend Reach
+    path: Extend Reach
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 5
+    min: 0
+    max: 12
+    enumValues: []
+    descendantCount: 0
+  - name: Receiver Glow
+    path: Receiver Glow
+    tooltip: How strongly a ribbon brightens as it takes in particles and dims as
+      it gives them up. 0 = brightness never changes.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 2
+    min: 0
+    max: 4
+    enumValues: []
+    descendantCount: 0
+  - name: Transfer Amount
+    path: Transfer Amount
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0.8
+    min: 0.1
+    max: 1
+    enumValues: []
+    descendantCount: 0
+  - name: Transfer Interval
+    path: Transfer Interval
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 14
+    min: 6
+    max: 40
+    enumValues: []
+    descendantCount: 0
+  - name: Transfer Duration
+    path: Transfer Duration
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 20
+    min: 8
+    max: 40
+    enumValues: []
+    descendantCount: 0
+  - name: Depth Drift Period
+    path: Depth Drift Period
+    tooltip: Seconds a ribbon takes to drift from near to far and back. Each ribbon
+      keeps its own pace.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 30
+    min: 10
+    max: 90
+    enumValues: []
+    descendantCount: 0
+  - name: Width Follow
+    path: Width Follow
+    tooltip: How strongly a ribbon widens as particles join it and narrows as they
+      leave. 0 = width never changes.
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 2.5
+    min: 0
+    max: 5
+    enumValues: []
+    descendantCount: 0
+  - name: Run Seed
+    path: Run Seed
+    tooltip: 
+    space: -1
+    spaceable: 0
+    sheetType: m_Float
+    realType: Single
+    defaultValue:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0
+    min: -Infinity
+    max: Infinity
+    enumValues: []
+    descendantCount: 0
   m_ImportDependencies: []
   m_GraphVersion: 19
   m_ResourceVersion: 1
@@ -500,7 +841,7 @@ MonoBehaviour:
   m_Parent: {fileID: 114350483966674976}
   m_Children:
   - {fileID: 8926484042661614685}
-  m_UIPosition: {x: 878, y: 26}
+  m_UIPosition: {x: 879, y: 232}
   m_UICollapsed: 0
   m_UISuperCollapsed: 0
   m_InputSlots:
@@ -1597,7 +1938,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 833c3541f2af4b28b080abc2cd1a804d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.Block.CustomHLSL
   m_UIIgnoredErrors: []
   m_Parent: {fileID: 8926484042661614662}
@@ -1626,15 +1967,20 @@ MonoBehaviour:
   - {fileID: 8926484042661616051}
   - {fileID: 8926484042661616054}
   - {fileID: 8926484042661616057}
+  - {fileID: 8926484042661616063}
   m_OutputSlots: []
   m_Disabled: 0
   m_ActivationSlot: {fileID: 8926484042661615002}
   m_BlockName: Custom HLSL
-  m_HLSLCode: "void L09VeilReflect(inout VFXAttributes attributes)\n{\n}"
+  m_HLSLCode: 'void L09VeilReflect(inout VFXAttributes attributes)
+
+    {
+
+    }'
   m_ShaderFile: {fileID: 10900000, guid: 9a1c0e7b4f2d4a68b3d5e1f07c8a2b90, type: 3}
   m_AvailableFunction:
     selection: L09VeilReflect
-    selectedIndex: 0
+    selectedIndex: 1
 --- !u!114 &8926484042661615002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1704,6 +2050,55 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616002}
+--- !u!114 &8926484042661616001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616002}
+  m_ExposedName: Dot Opacity
+  m_Exposed: 1
+  m_Order: 0
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1.5
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How see-through the dots are. Higher = brighter, especially where dots
+    overlap.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616002}
+      inputSlot: {fileID: 8926484042661616000}
+    position: {x: -48.333332, y: -300}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1739,54 +2134,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616000}
---- !u!114 &8926484042661616001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616002}
-  m_ExposedName: Dot Opacity
-  m_Exposed: 1
-  m_Order: 10
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1.5
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How see-through the dots are. Higher = brighter, especially where dots overlap.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616002}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1500}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1822,6 +2169,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616005}
+--- !u!114 &8926484042661616004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616005}
+  m_ExposedName: Dot Size
+  m_Exposed: 1
+  m_Order: 1
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.005
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.12
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: Size of each dot. Far dots shrink by themselves.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616005}
+      inputSlot: {fileID: 8926484042661616003}
+    position: {x: 211.66666, y: -300}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616005
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1857,54 +2252,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616003}
---- !u!114 &8926484042661616004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616005}
-  m_ExposedName: Dot Size
-  m_Exposed: 1
-  m_Order: 11
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.005
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.12
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Size of each dot. Far dots shrink by themselves.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616005}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1500}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1940,6 +2287,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616008}
+--- !u!114 &8926484042661616007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616008}
+  m_ExposedName: Brightness
+  m_Exposed: 1
+  m_Order: 2
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.2
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 3
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: Multiplies every color. Raise for a brighter picture.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616008}
+      inputSlot: {fileID: 8926484042661616006}
+    position: {x: 471.66666, y: -300}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1975,54 +2370,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616006}
---- !u!114 &8926484042661616007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616008}
-  m_ExposedName: Brightness
-  m_Exposed: 1
-  m_Order: 12
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.2
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 3
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Multiplies every color. Raise for a brighter picture.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616008}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1500}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616009
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2058,6 +2405,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616011}
+--- !u!114 &8926484042661616010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616011}
+  m_ExposedName: Distance Haze
+  m_Exposed: 1
+  m_Order: 3
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How much far layers fade into the dark blue background. 0 = not at all.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616011}
+      inputSlot: {fileID: 8926484042661616009}
+    position: {x: -48.333332, y: -210}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616011
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2093,54 +2488,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616009}
---- !u!114 &8926484042661616010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616011}
-  m_ExposedName: Distance Haze
-  m_Exposed: 1
-  m_Order: 13
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How much far layers fade into the dark blue background. 0 = not at all.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616011}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1590}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616012
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2176,6 +2523,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616014}
+--- !u!114 &8926484042661616013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616014}
+  m_ExposedName: Far Layer Opacity
+  m_Exposed: 1
+  m_Order: 4
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.1
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1.2
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How bright the farthest layer is. Lower = deeper space.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616014}
+      inputSlot: {fileID: 8926484042661616012}
+    position: {x: 211.66666, y: -210}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616014
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2211,54 +2606,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616012}
---- !u!114 &8926484042661616013
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616014}
-  m_ExposedName: Far Layer Opacity
-  m_Exposed: 1
-  m_Order: 14
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.1
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1.2
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How bright the farthest layer is. Lower = deeper space.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616014}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1590}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616015
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2294,6 +2641,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616017}
+--- !u!114 &8926484042661616016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616017}
+  m_ExposedName: Horizon Height
+  m_Exposed: 1
+  m_Order: 5
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: -0.95
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: -0.3
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: Where the mirror line sits on screen. -1 = bottom edge.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616017}
+      inputSlot: {fileID: 8926484042661616015}
+    position: {x: 471.66666, y: -210}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616017
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2329,54 +2724,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616015}
---- !u!114 &8926484042661616016
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616017}
-  m_ExposedName: Horizon Height
-  m_Exposed: 1
-  m_Order: 15
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: -0.95
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: -0.3
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Where the mirror line sits on screen. -1 = bottom edge.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616017}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1590}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2412,6 +2759,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616020}
+--- !u!114 &8926484042661616019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616020}
+  m_ExposedName: Horizon Waviness
+  m_Exposed: 1
+  m_Order: 6
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.3
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How much the horizon line rises and falls.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616020}
+      inputSlot: {fileID: 8926484042661616018}
+    position: {x: -48.333332, y: -120}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616020
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2447,54 +2842,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616018}
---- !u!114 &8926484042661616019
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616020}
-  m_ExposedName: Horizon Waviness
-  m_Exposed: 1
-  m_Order: 16
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.3
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How much the horizon line rises and falls.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616020}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1680}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616021
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2530,6 +2877,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616023}
+--- !u!114 &8926484042661616022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616023}
+  m_ExposedName: Mirror Strength
+  m_Exposed: 1
+  m_Order: 7
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How bright the reflection under the horizon is.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616023}
+      inputSlot: {fileID: 8926484042661616021}
+    position: {x: 211.66666, y: -120}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616023
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2565,54 +2960,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616021}
---- !u!114 &8926484042661616022
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616023}
-  m_ExposedName: Mirror Strength
-  m_Exposed: 1
-  m_Order: 17
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How bright the reflection under the horizon is.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616023}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1680}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616024
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2648,6 +2995,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616026}
+--- !u!114 &8926484042661616025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616026}
+  m_ExposedName: Horizon Glow
+  m_Exposed: 1
+  m_Order: 8
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How bright the faint line along the horizon is.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616026}
+      inputSlot: {fileID: 8926484042661616024}
+    position: {x: 471.66666, y: -120}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616026
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2683,54 +3078,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616024}
---- !u!114 &8926484042661616025
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616026}
-  m_ExposedName: Horizon Glow
-  m_Exposed: 1
-  m_Order: 18
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: How bright the faint line along the horizon is.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616026}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1680}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616027
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2766,6 +3113,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616029}
+--- !u!114 &8926484042661616028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616029}
+  m_ExposedName: Color Variety
+  m_Exposed: 1
+  m_Order: 9
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1.5
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 0 = all ribbons share one color. Higher = more different colors.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616029}
+      inputSlot: {fileID: 8926484042661616027}
+    position: {x: -48.333332, y: -30}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616029
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2801,54 +3196,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616027}
---- !u!114 &8926484042661616028
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616029}
-  m_ExposedName: Color Variety
-  m_Exposed: 1
-  m_Order: 19
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 1.5
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: 0 = all ribbons share one color. Higher = more different colors.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616029}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1770}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2884,6 +3231,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616032}
+--- !u!114 &8926484042661616031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616032}
+  m_ExposedName: Color Warmth
+  m_Exposed: 1
+  m_Order: 10
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: -0.5
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.5
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: Slides all colors along the palette. Negative = cooler, positive = warmer.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616032}
+      inputSlot: {fileID: 8926484042661616030}
+    position: {x: 211.66666, y: -30}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616032
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2919,54 +3314,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616030}
---- !u!114 &8926484042661616031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616032}
-  m_ExposedName: Color Warmth
-  m_Exposed: 1
-  m_Order: 20
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: -0.5
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.5
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Slides all colors along the palette. Negative = cooler, positive = warmer.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616032}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1770}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3002,6 +3349,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616035}
+--- !u!114 &8926484042661616034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616035}
+  m_ExposedName: Split Distance
+  m_Exposed: 1
+  m_Order: 11
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.3
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 3
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616035}
+      inputSlot: {fileID: 8926484042661616033}
+    position: {x: 471.66666, y: -30}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3037,54 +3432,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616033}
---- !u!114 &8926484042661616034
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616035}
-  m_ExposedName: Split Distance
-  m_Exposed: 1
-  m_Order: 21
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.3
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 3
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Split event: how far the two branches pull apart.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616035}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1770}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616036
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3120,6 +3467,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616038}
+--- !u!114 &8926484042661616037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616038}
+  m_ExposedName: Gather Strength
+  m_Exposed: 1
+  m_Order: 12
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.9
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616038}
+      inputSlot: {fileID: 8926484042661616036}
+    position: {x: -48.333332, y: 59.999992}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616038
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3155,54 +3550,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616036}
---- !u!114 &8926484042661616037
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616038}
-  m_ExposedName: Gather Strength
-  m_Exposed: 1
-  m_Order: 22
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.9
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Gather event: how tightly the stretch draws in.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616038}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1860}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3238,6 +3585,54 @@ MonoBehaviour:
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616041}
+--- !u!114 &8926484042661616040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616041}
+  m_ExposedName: Extend Reach
+  m_Exposed: 1
+  m_Order: 13
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 12
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616041}
+      inputSlot: {fileID: 8926484042661616039}
+    position: {x: 211.66666, y: 59.999992}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3273,54 +3668,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616039}
---- !u!114 &8926484042661616040
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616041}
-  m_ExposedName: Extend Reach
-  m_Exposed: 1
-  m_Order: 23
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 12
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Extend event: how far the strands sweep out.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616041}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1860}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3346,16 +3693,65 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.7
+      m_SerializableObject: 2
     m_Space: -1
   m_Property:
-    name: _glow
+    name: _receiverGlow
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616044}
+--- !u!114 &8926484042661616043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616044}
+  m_ExposedName: Receiver Glow
+  m_Exposed: 1
+  m_Order: 14
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 4
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How strongly a ribbon brightens as it takes in particles and dims as
+    it gives them up. 0 = brightness never changes.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616044}
+      inputSlot: {fileID: 8926484042661616042}
+    position: {x: 471.66666, y: 59.999992}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3381,7 +3777,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.7
+      m_SerializableObject: 2
     m_Space: -1
   m_Property:
     name: o
@@ -3391,54 +3787,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616042}
---- !u!114 &8926484042661616043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616044}
-  m_ExposedName: Event Glow
-  m_Exposed: 1
-  m_Order: 24
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 2
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Extra brightness where an event is happening.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616044}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1860}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3464,16 +3812,64 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.35
+      m_SerializableObject: 0.8
     m_Space: -1
   m_Property:
-    name: _detachShare
+    name: _transferAmount
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616047}
+--- !u!114 &8926484042661616046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616047}
+  m_ExposedName: Transfer Amount
+  m_Exposed: 1
+  m_Order: 15
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0.1
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 1
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616047}
+      inputSlot: {fileID: 8926484042661616045}
+    position: {x: -48.333332, y: 149.99998}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616047
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3499,7 +3895,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.35
+      m_SerializableObject: 0.8
     m_Space: -1
   m_Property:
     name: o
@@ -3509,54 +3905,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616045}
---- !u!114 &8926484042661616046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616047}
-  m_ExposedName: Detach Amount
-  m_Exposed: 1
-  m_Order: 25
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.05
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.5
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Detach event: share of the particles in the stretch that leave to form the small cluster.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616047}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 1950}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616048
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3582,16 +3930,64 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 5
+      m_SerializableObject: 14
     m_Space: -1
   m_Property:
-    name: _clusterSize
+    name: _transferEvery
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616050}
+--- !u!114 &8926484042661616049
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616050}
+  m_ExposedName: Transfer Interval
+  m_Exposed: 1
+  m_Order: 16
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 6
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 40
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616050}
+      inputSlot: {fileID: 8926484042661616048}
+    position: {x: 211.66666, y: 149.99998}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616050
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3617,7 +4013,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 5
+      m_SerializableObject: 14
     m_Space: -1
   m_Property:
     name: o
@@ -3627,54 +4023,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616048}
---- !u!114 &8926484042661616049
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616050}
-  m_ExposedName: New Ribbon Length
-  m_Exposed: 1
-  m_Order: 26
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 2
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 10
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Detach event: length of the new small ribbon.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616050}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 1950}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616051
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3700,16 +4048,64 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 7
+      m_SerializableObject: 20
     m_Space: -1
   m_Property:
-    name: _driftDist
+    name: _transferTime
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616053}
+--- !u!114 &8926484042661616052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616053}
+  m_ExposedName: Transfer Duration
+  m_Exposed: 1
+  m_Order: 17
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 8
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 40
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: 
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616053}
+      inputSlot: {fileID: 8926484042661616051}
+    position: {x: 471.66666, y: 149.99998}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616053
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3735,7 +4131,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 7
+      m_SerializableObject: 20
     m_Space: -1
   m_Property:
     name: o
@@ -3745,54 +4141,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616051}
---- !u!114 &8926484042661616052
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616053}
-  m_ExposedName: Drift Distance
-  m_Exposed: 1
-  m_Order: 27
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 2
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 14
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Detach event: how far the new ribbon travels before it loosens and the particles return.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616053}
-      inputSlot: {fileID: 0}
-    position: {x: 820, y: 1950}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3818,16 +4166,65 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 1.5
+      m_SerializableObject: 30
     m_Space: -1
   m_Property:
-    name: _clusterSpin
+    name: _depthPeriod
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616056}
+--- !u!114 &8926484042661616055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616056}
+  m_ExposedName: Depth Drift Period
+  m_Exposed: 1
+  m_Order: 18
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 10
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 90
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: Seconds a ribbon takes to drift from near to far and back. Each ribbon
+    keeps its own pace.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616056}
+      inputSlot: {fileID: 8926484042661616054}
+    position: {x: -48.333332, y: 240}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3853,7 +4250,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 1.5
+      m_SerializableObject: 30
     m_Space: -1
   m_Property:
     name: o
@@ -3863,54 +4260,6 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616054}
---- !u!114 &8926484042661616055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
-  m_UIIgnoredErrors: []
-  m_Parent: {fileID: 114350483966674976}
-  m_Children: []
-  m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
-  m_UISuperCollapsed: 0
-  m_InputSlots: []
-  m_OutputSlots:
-  - {fileID: 8926484042661616056}
-  m_ExposedName: New Ribbon Twist
-  m_Exposed: 1
-  m_Order: 28
-  m_Category: 
-  m_Min:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
-  m_Max:
-    m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 4
-  m_IsOutput: 0
-  m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Detach event: how many turns the new ribbon twists along its length.
-  m_Nodes:
-  - m_Id: 0
-    linkedSlots:
-    - outputSlot: {fileID: 8926484042661616056}
-      inputSlot: {fileID: 0}
-    position: {x: 300, y: 2040}
-    expandedSlots: []
-    expanded: 1
-    supecollapsed: 0
 --- !u!114 &8926484042661616057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3936,16 +4285,65 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.06
+      m_SerializableObject: 2.5
     m_Space: -1
   m_Property:
-    name: _clusterTrail
+    name: _widthFollow
     m_serializedType:
       m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
         PublicKeyToken=b77a5c561934e089
   m_Direction: 0
   m_LinkedSlots:
   - {fileID: 8926484042661616059}
+--- !u!114 &8926484042661616058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 330e0fca1717dde4aaa144f48232aa64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXParameter
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 114350483966674976}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_InputSlots: []
+  m_OutputSlots:
+  - {fileID: 8926484042661616059}
+  m_ExposedName: Width Follow
+  m_Exposed: 1
+  m_Order: 19
+  m_Category: 
+  m_Min:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 0
+  m_Max:
+    m_Type:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+    m_SerializableObject: 5
+  m_IsOutput: 0
+  m_EnumValues: []
+  m_ValueFilter: 1
+  m_Tooltip: How strongly a ribbon widens as particles join it and narrows as they
+    leave. 0 = width never changes.
+  m_Nodes:
+  - m_Id: 0
+    linkedSlots:
+    - outputSlot: {fileID: 8926484042661616059}
+      inputSlot: {fileID: 8926484042661616057}
+    position: {x: 211.66666, y: 240}
+    expandedSlots: []
+    expanded: 1
+    supecollapsed: 0
 --- !u!114 &8926484042661616059
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3971,7 +4369,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.06
+      m_SerializableObject: 2.5
     m_Space: -1
   m_Property:
     name: o
@@ -3981,7 +4379,7 @@ MonoBehaviour:
   m_Direction: 1
   m_LinkedSlots:
   - {fileID: 8926484042661616057}
---- !u!114 &8926484042661616058
+--- !u!114 &8926484042661616060
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4001,31 +4399,99 @@ MonoBehaviour:
   m_UISuperCollapsed: 0
   m_InputSlots: []
   m_OutputSlots:
-  - {fileID: 8926484042661616059}
-  m_ExposedName: New Ribbon Flow
+  - {fileID: 8926484042661616061}
+  m_ExposedName: Run Seed
   m_Exposed: 1
-  m_Order: 29
+  m_Order: 20
   m_Category: 
   m_Min:
     m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0
+      m_SerializableType: 
+    m_SerializableObject: 
   m_Max:
     m_Type:
-      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-        PublicKeyToken=b77a5c561934e089
-    m_SerializableObject: 0.2
+      m_SerializableType: 
+    m_SerializableObject: 
   m_IsOutput: 0
   m_EnumValues: []
-  m_ValueFilter: 1
-  m_Tooltip: Detach event: how fast particles run along the new ribbon.
+  m_ValueFilter: 0
+  m_Tooltip: 
   m_Nodes:
   - m_Id: 0
     linkedSlots:
-    - outputSlot: {fileID: 8926484042661616059}
-      inputSlot: {fileID: 0}
-    position: {x: 560, y: 2040}
+    - outputSlot: {fileID: 8926484042661616061}
+      inputSlot: {fileID: 8926484042661616063}
+    position: {x: 671.1111, y: 240.55554}
     expandedSlots: []
     expanded: 1
     supecollapsed: 0
+--- !u!114 &8926484042661616061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f780aa281814f9842a7c076d436932e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXSlotFloat
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 0}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_MasterSlot: {fileID: 8926484042661616061}
+  m_MasterData:
+    m_Owner: {fileID: 8926484042661616060}
+    m_Value:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 0
+    m_Space: -1
+  m_Property:
+    name: o
+    m_serializedType:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+  m_Direction: 1
+  m_LinkedSlots:
+  - {fileID: 8926484042661616063}
+--- !u!114 &8926484042661616063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f780aa281814f9842a7c076d436932e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.VisualEffectGraph.Editor::UnityEditor.VFX.VFXSlotFloat
+  m_UIIgnoredErrors: []
+  m_Parent: {fileID: 0}
+  m_Children: []
+  m_UIPosition: {x: 0, y: 0}
+  m_UICollapsed: 1
+  m_UISuperCollapsed: 0
+  m_MasterSlot: {fileID: 8926484042661616063}
+  m_MasterData:
+    m_Owner: {fileID: 8926484042661615001}
+    m_Value:
+      m_Type:
+        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      m_SerializableObject: 
+    m_Space: -1
+  m_Property:
+    name: _runSeed
+    m_serializedType:
+      m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
+        PublicKeyToken=b77a5c561934e089
+  m_Direction: 0
+  m_LinkedSlots:
+  - {fileID: 8926484042661616061}
