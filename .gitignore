@@ -39,3 +39,7 @@ Thumbs.db
 
 # Tools
 graphify-out/
+
+# Third-party reference videos and the user's own screen recordings for sketch 09: kept local, not published
+/docs/refs/09-idle/*.mp4
+/docs/refs/09-idle/*.webm
