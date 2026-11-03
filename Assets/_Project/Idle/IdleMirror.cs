@@ -1,13 +1,12 @@
 using UnityEngine;
 using UnityEngine.VFX;
 
-namespace FlowMirror.Lookdev09
+namespace FlowMirror.Idle
 {
-    // Sketch 09 (look-dev, throwaway): keeps the mirror's exposed properties in step with the world's, so only the world's
-    // VisualEffect needs tuning in the Inspector.
+    // Keeps the mirror's exposed properties in step with the world's, so only the world's VisualEffect needs tuning in the Inspector.
     [ExecuteAlways]
     [RequireComponent(typeof(VisualEffect))]
-    public class L09Mirror : MonoBehaviour
+    public class IdleMirror : MonoBehaviour
     {
         [SerializeField] VisualEffect world;
 
