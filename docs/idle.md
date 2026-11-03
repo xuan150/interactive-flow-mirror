@@ -1,10 +1,10 @@
-# Sketch 09: 看樣：光點待機（光紗）
+# 待機：光紗
 
-**目標**：獨立於流線待機（02b）的新待機版本。畫面只有粒子，形體靠疏密與亮邊浮現，要有世界感（鋪滿畫面、有遠近、有地面倒影），並自己發生事件（光紗之間交換粒子等），沒有人也有戲。規格與概念圖在 `docs/refs/09-idle/`（`spec.md`、`concept.png`）。參考影片 ref1–4 是從 Shadertoy、Pinterest 找的，授權不明，不放進 repo（本機留著，已在 `.gitignore`）。
-**結果**：看完 07a、07b、07c 與本張四個待機版本後，**選定 09**。
-**架構位置**：渲染層（`L09_Veil.vfx`、`L09_Reflect.vfx`、`L09_Fly.vfx`，位置、顏色、透明度全由 `L09_Veil.hlsl` 算出）。
+**目標**：獨立於流線待機（02b）的新待機版本。畫面只有粒子，形體靠疏密與亮邊浮現，要有世界感（鋪滿畫面、有遠近、有地面倒影），並自己發生事件（光紗之間交換粒子等），沒有人也有戲。規格與概念圖在 `docs/refs/idle/`（`spec.md`、`concept.png`）。參考影片 ref1–4 是從 Shadertoy、Pinterest 找的，授權不明，不放進 repo（本機留著，已在 `.gitignore`）。
+**結果**：看完 07a、07b、07c 與這個光點待機後，**選定光紗當待機**（2026-11-02）。
+**架構位置**：渲染層（`Idle_Veil.vfx`、`Idle_Reflect.vfx`、`Idle_Fly.vfx`，位置、顏色、透明度全由 `Idle_Veil.hlsl` 算出）。
 **前置**：無（不讀人物 buffer，之後人進場時再接）
-**位置**：`Scenes/Sketches/Sketch_09_idle/`。
+**位置**：`Assets/_Project/Idle/`；場景物件在 `Scenes/Main.unity`（`Idle Veil`、`Idle Reflect`、`Idle Fly`）。原本單獨的 sketch 場景已併入 Main（2026-11-03），檔案與 `L09_` 前綴一律改成 `Idle`。
 
 ## 決定
 
@@ -23,12 +23,12 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `L09_Veil.hlsl` | 三個入口 `L09Veil`（本體）、`L09VeilReflect`（倒影）、`L09Fly`（飛向鏡頭），共用 `L09_Core` / `L09_FlyCore`。旋鈕多是檔頭的 `#define` |
-| `L09_Veil.vfx` | 容量 10 萬，Spawn Rate 5000 萬（第一幀全部生成），Update 只有一個 Custom HLSL |
-| `L09_Reflect.vfx` | 倒影，容量 4 萬，函數 `L09VeilReflect` |
-| `L09_Fly.vfx` + `L09_SoftDot.png` | 飛向鏡頭專用，容量 64，貼圖是自己產生的高斯軟邊（共用的圓點貼圖邊緣是固定的，放大只是更大的圓點，不會變模糊） |
-| `L09_Mirror.cs` | 把世界的 Inspector 值複製給倒影與飛向鏡頭；進 Play 時抽 `Run Seed` |
-| `Sketch_09_idle.unity` | 相機＋三個 VisualEffect 物件（`L09 Veil`、`L09 Reflect`、`L09 Fly`） |
+| `Idle_Veil.hlsl` | 三個入口 `IdleVeil`（本體）、`IdleVeilReflect`（倒影）、`IdleFly`（飛向鏡頭），共用 `Idle_Core` / `Idle_FlyCore`。旋鈕多是檔頭的 `#define` |
+| `Idle_Veil.vfx` | 容量 10 萬，Spawn Rate 5000 萬（第一幀全部生成），Update 只有一個 Custom HLSL |
+| `Idle_Reflect.vfx` | 倒影，容量 4 萬，函數 `IdleVeilReflect` |
+| `Idle_Fly.vfx` + `Idle_SoftDot.png` | 飛向鏡頭專用，容量 64，貼圖是自己產生的高斯軟邊（共用的圓點貼圖邊緣是固定的，放大只是更大的圓點，不會變模糊） |
+| `IdleMirror.cs` | 把世界的 Inspector 值複製給倒影與飛向鏡頭；進 Play 時抽 `Run Seed` |
+| `Main.unity` | 三個 VisualEffect 物件（`Idle Veil`、`Idle Reflect`、`Idle Fly`）；相機沿用光紗的設定：透視 FOV 35、位置 (0, 0, -14)、背景 #080D1B、**關閉後製**（Main 原本的 Bloom 會改變光紗的樣子） |
 
 三個特效用同一個函式簽名與同一組 Inspector 參數；函式輸入一多，Unity 會在 Custom HLSL 區塊多一個輸入，要手動接到同名參數（例如 `Run Seed`）。
 
@@ -39,12 +39,12 @@
 | 事件 | 間隔 | 長度 | 角色 |
 |---|---|---|---|
 | **交換**：一條光紗閃爍著把粒子送到另一條 | `Transfer Interval`（Inspector，目前 30 秒） | `Transfer Duration`（目前 20 秒，每場 0.65–1.35 倍） | 主角 |
-| **凝結**：光紗某一段附近的塵埃被吸進來、待一陣、再呼氣散回 | `L09_CINT` 60 秒 | `L09_CDUR` 34 秒 | 配角 |
-| **飛向鏡頭**：遠處粒子沿著透視衝向鏡頭，變大、模糊、發亮、飛出畫面 | `L09_FINT` 45 秒 | `L09_FDUR` 16 秒，每次飛行 4–5.5 秒，每場 `L09_FN` 40 次 | 配角（最稀疏） |
+| **凝結**：光紗某一段附近的塵埃被吸進來、待一陣、再呼氣散回 | `Idle_CINT` 60 秒 | `Idle_CDUR` 34 秒 | 配角 |
+| **飛向鏡頭**：遠處粒子沿著透視衝向鏡頭，變大、模糊、發亮、飛出畫面 | `Idle_FINT` 45 秒 | `Idle_FDUR` 16 秒，每次飛行 4–5.5 秒，每場 `Idle_FN` 40 次 | 配角（最稀疏） |
 
 - **交換**：給予方的粒子漸漸進入閃爍（先亮、再飛），接收方在粒子到達後穩定發亮、全部歸位後漸暗；給予方同時漸暗回原樣。接收方輪流，不連續同一條，空的先收。每場有側移／滲出／單側堆疊三種傾向。事件各自在自己的時段內開始、在下一時段開始前結束，只要 `Transfer Duration` 小於 `Transfer Interval` 就不會重疊
 - **凝結**：離那一段越近的塵埃越容易被吸走，所以空缺是局部的；呼氣階段各自選時間，從光紗往外散、落回各自原位，背景在事件結束時完全恢復
-- **飛向鏡頭**：粒子的橫向位置固定，靠透視自己往畫面外飛。速度由「螢幕上放大多少」驅動（`L09_FSLOW` 越大，起步越慢、後段越猛），飛到畫面邊緣外才淡出；飛近時顏色回到飽和、越來越亮（`L09_FGLARE`）。不進鏡子
+- **飛向鏡頭**：粒子的橫向位置固定，靠透視自己往畫面外飛。速度由「螢幕上放大多少」驅動（`Idle_FSLOW` 越大，起步越慢、後段越猛），飛到畫面邊緣外才淡出；飛近時顏色回到飽和、越來越亮（`Idle_FGLARE`）。不進鏡子
 - **隨機**：`Run Seed` 每次 Play 抽一個整數，混進三種事件的種子，所以每次啟動事件的順序都不一樣；光紗的形狀不受影響。種子為 0 時順序固定（除錯用）
 
 ## 踩過的坑
