@@ -15,6 +15,7 @@ namespace FlowMirror.Idle
             "Dot Opacity", "Dot Size", "Brightness", "Distance Haze", "Far Layer Opacity", "Horizon Height", "Horizon Waviness", "Mirror Strength", "Horizon Glow", "Color Variety", "Color Warmth", "Split Distance", "Gather Strength", "Extend Reach", "Receiver Glow", "Transfer Amount", "Transfer Interval", "Transfer Duration", "Depth Drift Period", "Width Follow", "Run Seed",
             "Notice Width Stay", "Notice Width Long", "Notice Height Stay", "Notice Height Long", "Notice Rim Softness", "Notice Rim Burn Guard", "Notice Edge Ragged", "Notice Width Wobble", "Notice Tilt",
             "Notice Orbit Share Stay", "Notice Orbit Share Long", "Notice Orbit Reach Stay", "Notice Orbit Reach Long", "Notice Orbit Inside", "Notice Pulse Sweep", "Notice Pulse Stop",
+            "Notice Core Keep", "Notice Deflect",
         };
 
         VisualEffect mirror;

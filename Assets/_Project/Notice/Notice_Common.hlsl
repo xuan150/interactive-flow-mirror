@@ -12,6 +12,8 @@ struct IdleNotice
     float viewerX;    // -1..1: screen x of the viewer. Already smoothed on the CPU, so it trails on purpose.
     float viewerY;    // -1..1: screen y of the viewer, smoothed the same way.
     float clock;      // Seconds on the world's clock (the same value the particles' age is set to).
+    float wakeX;      // -1..1: where the viewer was a moment ago (a slower shadow of viewerX). The tail runs from the viewer back to it.
+    float wakeY;
 
     // The shape of the reaction, tuned in the Inspector (the inputs of the veil; the reflection copies them). Units are screen
     // half-heights unless said otherwise; see the input list of IdleVeil for what each one does.
@@ -31,6 +33,8 @@ struct IdleNotice
     float inside;
     float pulseSweep;
     float pulseStop;
+    float coreKeep;
+    float deflect;
 };
 
 // Which parts of the reaction are on (NoticeSensor sets the Notice Mode input to this bit mask).

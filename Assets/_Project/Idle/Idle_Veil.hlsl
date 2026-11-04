@@ -895,9 +895,9 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// noticeWidthLong: Half the width after a long stay (over 10 s).
 /// noticeHeightStay: Half the height of the cleared space after a stay. The viewer's box is 0.63 tall.
 /// noticeHeightLong: Half the height after a long stay.
-/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Keep it between 0.1 and 0.65.
+/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Clamped to 0.05 - 0.8; about 0.25 reads best.
 /// noticeRimEven: How much of the pile-up's extra brightness is cancelled. 0 = a very bright rim, 1 = no glow at all.
-/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain rectangle, bigger = a more ragged, wavy edge.
+/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain capsule, bigger = a more ragged, wavy edge.
 /// noticeWidthWobble: How much the width changes from the top of the space to the bottom (share of the width). 0 = straight sides.
 /// noticeTilt: How far the whole space sways to one side and the other, in radians. 0 = always upright.
 /// noticeOrbitStay: Share of the dots near the space that leave their ribbons and circle it, after a stay.
@@ -907,6 +907,10 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// noticeInside: Share of the orbiting dots that are allowed to dip inside the space now and then. Keep it tiny (0.003) or the inside is not empty.
 /// noticePulseSweep: Seconds the bright ring takes to come in toward the viewer. Smaller = faster.
 /// noticePulseStop: Where the bright ring stops, in steps outside the rim (1 step = 0.35 screen half-heights). About 1.6 is the outer edge of the dots the viewer has pushed aside; bigger = it stops further away.
+/// noticeWakeX: Screen x, -1 - 1, of a slower shadow of the viewer. The stretch from the viewer back to it is the tail the field drags behind a moving viewer. Set by NoticeSensor.
+/// noticeWakeY: Screen y of that slower shadow. Set by NoticeSensor.
+/// noticeCoreKeep: Share of the dots that do not leave the middle of the core, dimmer and smaller the closer to the middle line they are (the far layers keep 3 times as many). The core is already thin on its own, a ramp that is empty on the middle line and full at the edge; this adds a few dots on top. 0 = just the ramp.
+/// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
 void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
              in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
              in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -919,7 +923,8 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
               in float noticeRagged, in float noticeWidthWobble, in float noticeTilt,
               in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
               in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
-              in float noticePulseStop)
+              in float noticePulseStop,
+              in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -952,6 +957,7 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
     Idle_NOTICE.inside = noticeInside;
     Idle_NOTICE.pulseSweep = noticePulseSweep;
     Idle_NOTICE.pulseStop = noticePulseStop;
+    Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;
@@ -996,9 +1002,9 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// noticeWidthLong: Half the width after a long stay (over 10 s).
 /// noticeHeightStay: Half the height of the cleared space after a stay. The viewer's box is 0.63 tall.
 /// noticeHeightLong: Half the height after a long stay.
-/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Keep it between 0.1 and 0.65.
+/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Clamped to 0.05 - 0.8; about 0.25 reads best.
 /// noticeRimEven: How much of the pile-up's extra brightness is cancelled. 0 = a very bright rim, 1 = no glow at all.
-/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain rectangle, bigger = a more ragged, wavy edge.
+/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain capsule, bigger = a more ragged, wavy edge.
 /// noticeWidthWobble: How much the width changes from the top of the space to the bottom (share of the width). 0 = straight sides.
 /// noticeTilt: How far the whole space sways to one side and the other, in radians. 0 = always upright.
 /// noticeOrbitStay: Share of the dots near the space that leave their ribbons and circle it, after a stay.
@@ -1008,6 +1014,10 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// noticeInside: Share of the orbiting dots that are allowed to dip inside the space now and then. Keep it tiny (0.003) or the inside is not empty.
 /// noticePulseSweep: Seconds the bright ring takes to come in toward the viewer. Smaller = faster.
 /// noticePulseStop: Where the bright ring stops, in steps outside the rim (1 step = 0.35 screen half-heights). About 1.6 is the outer edge of the dots the viewer has pushed aside; bigger = it stops further away.
+/// noticeWakeX: Screen x, -1 - 1, of a slower shadow of the viewer. The stretch from the viewer back to it is the tail the field drags behind a moving viewer. Set by NoticeSensor.
+/// noticeWakeY: Screen y of that slower shadow. Set by NoticeSensor.
+/// noticeCoreKeep: Share of the dots that do not leave the middle of the core, dimmer and smaller the closer to the middle line they are (the far layers keep 3 times as many). The core is already thin on its own, a ramp that is empty on the middle line and full at the edge; this adds a few dots on top. 0 = just the ramp.
+/// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
 void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
                     in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
                     in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -1020,7 +1030,8 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
                      in float noticeRagged, in float noticeWidthWobble, in float noticeTilt,
                      in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
                      in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
-                     in float noticePulseStop)
+                     in float noticePulseStop,
+                     in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -1053,6 +1064,7 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
     Idle_NOTICE.inside = noticeInside;
     Idle_NOTICE.pulseSweep = noticePulseSweep;
     Idle_NOTICE.pulseStop = noticePulseStop;
+    Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;

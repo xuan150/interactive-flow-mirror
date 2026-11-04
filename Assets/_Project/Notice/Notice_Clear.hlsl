@@ -1,7 +1,17 @@
-// Notice clear: the world makes room for the viewer and gets curious about them. Dots leave a person-sized, upright, lumpy
-// rectangle around the viewer and pile up in a bright rim on its edge; many of the dots nearby are drawn off their ribbons and
-// circle the rectangle, each at its own speed and distance. The edge wobbles, bulges and tilts, and the center wanders, so the
-// shape is never the same twice, and nothing of the viewer's outline is drawn.
+// Notice clear: the world makes room for the viewer as a soft field, in three layers that run into one another.
+//   Core   an upright capsule around the viewer. The dots are moved out of it along a ramp, not a cut: the dots nearest the middle
+//          line move the most and spread over the core, so its density is lowest in the middle and climbs smoothly to 1 at the edge
+//          (no step to see, nothing deleted). A few dots stay where they are (the same few every frame), dimmer and smaller
+//          toward the middle, so it is thin, never hollow.
+//   Shell  the band around the core. The dots that left pile up here a little (about 1.4x at the peak) and slide along the capsule
+//          instead of being pushed straight out: away from the middle line on the upstream side, back toward it on the lee side, like
+//          a flow splitting around something soft. Far layers push and slide less and keep more dots in the core than near ones.
+//   Wake   while the viewer moves, a soft dim band trails along the wake (a slower shadow of the viewer), so the place they just
+//          left is thin for a while and fills back in as the shadow catches up. It only changes the dots' weight (alpha and size),
+//          not their place, so it is one continuous trail and not a row of holes.
+// The edge wobbles, bulges and tilts, and the center wanders, so the shape is never the same twice. Nothing of the viewer's
+// outline is drawn. Many dots near the edge can also be drawn off their ribbons to circle it (orbiters, off in the Inspector
+// by setting their share to 0).
 // Needs Notice_Common.hlsl, Notice_Pulse.hlsl, Notice_Focus.hlsl and the Idle_* macros included first.
 // Everything is a pure function of (particle, IdleNotice): the flow is worked out first, the push and the orbit are laid on top.
 // Work happens in screen half-heights (x = pos.x / (depth * TANH), same for y), so the patch looks the same at every depth.
@@ -9,13 +19,41 @@
 #ifndef NOTICE_CLEAR_INCLUDED
 #define NOTICE_CLEAR_INCLUDED
 
-// The size of the rectangle (widthStay / widthLong / heightStay / heightLong), how soft its rim is (rim), how ragged, uneven and
-// tilted it is (ragged / widthWobble / tilt), how many dots orbit it (orbitStay / orbitLong, reachStay / reachLong, inside) are
-// Inspector inputs of the veil: see IdleNotice in Notice_Common.hlsl and the input list of IdleVeil.
-// Corner radius. Bigger = a rounder, more pill-like patch.
-#define Notice_Clear_CORNER 0.10
+// The size of the capsule (widthStay / widthLong / heightStay / heightLong), how soft its rim is (rim), how ragged, uneven and
+// tilted it is (ragged / widthWobble / tilt), how many dots stay in the core (coreKeep), how much the flow slides along it
+// (deflect), how many dots orbit it (orbitStay / orbitLong, reachStay / reachLong, inside) are Inspector inputs of the veil: see
+// IdleNotice in Notice_Common.hlsl and the input list of IdleVeil.
 // How much the width and height each swell and shrink with time (share of the size). 0 = fixed size.
 #define Notice_Clear_WOBBLE 0.12
+// Core. How fast the density climbs from the middle line to the edge: density = (distance / half-width) ^ RAMP. Bigger = a thinner
+// core with a steeper edge; 1 is a straight ramp. Changing it moves how much piles up on the rim (bigger = more).
+#define Notice_Core_RAMP 2.0
+// The far layers keep this many times more dots in the core than the near ones (1 = the same), and take this share of the push.
+#define Notice_Core_FAR_KEEP 3.0
+#define Notice_Core_FAR_PUSH 0.8
+// How much dimmer and smaller the dots left at the very middle are (share, 0 = as the others).
+#define Notice_Core_DIM 0.55
+#define Notice_Core_SHRINK 0.2
+// How much the roundness of the caps breathes (share of the half-width). 0 = always a full capsule.
+#define Notice_Core_BREATH 0.1
+// Shell. The far layers slide this share as much as the near ones; each dot slides a little more or less than the next (share).
+#define Notice_Deflect_FAR 0.5
+#define Notice_Deflect_JITTER 0.25
+// Height (share of the capsule's half-height) over which the slide turns from up (upper half) to down (lower half).
+#define Notice_Deflect_BAND 0.5
+// The lee side keeps this share of the upstream side's slide, and this share of its push. Different on the two sides on purpose.
+#define Notice_Deflect_LEE 0.5
+#define Notice_Deflect_LEE_PUSH 0.85
+// Wake. Longest tail (screen half-heights), and the tail lengths over which the band comes in (shorter than MIN = standing still).
+#define Notice_Wake_MAX 1.2
+#define Notice_Wake_MIN 0.04
+#define Notice_Wake_FULL 0.35
+// How much dimmer and smaller the dots in the band are at its strongest (share), how much weaker it is at the far end of the tail
+// (share), and how many points along the tail the band is measured at.
+#define Notice_Wake_DIM 0.6
+#define Notice_Wake_SHRINK 0.15
+#define Notice_Wake_FADE 0.6
+#define Notice_Wake_SAMPLES 3
 // How many of the far layers' dots take part in the orbit, as a share of the near layers' (1 = all layers the same). Every layer
 // is cleared; this only keeps the far ones from crowding the rim.
 #define Notice_Clear_FAR_SHARE 0.3
@@ -27,7 +65,7 @@
 // Distance outside the rim, in screen half-heights, that counts as one step in q (the unit the pulse and the focus are measured in).
 #define Notice_Clear_QUNIT 0.35
 
-// Orbiters: dots that leave their ribbons to circle the rectangle.
+// Orbiters: dots that leave their ribbons to circle the capsule.
 // Speed along the edge, in screen half-heights per second; each dot takes its own speed in this range and its own direction.
 #define Notice_Orbit_SPEED_MIN 0.15
 #define Notice_Orbit_SPEED_MAX 0.6
@@ -35,7 +73,7 @@
 #define Notice_Orbit_OFFSET_MIN 0.04
 #define Notice_Orbit_OFFSET_MAX 0.35
 #define Notice_Orbit_WANDER 0.08
-// How deep the few orbiters that dip inside the rectangle go (share of the half-width); how many do is the input "inside".
+// How deep the few orbiters that dip inside the capsule go (share of the half-width); how many do is the input "inside".
 #define Notice_Orbit_CROSS_DEPTH 0.5
 // Extra alpha of a dot that is orbiting (1 + this). Bigger = the circling dots stand out more.
 #define Notice_Orbit_GLOW 0.3
@@ -107,45 +145,106 @@ void Notice_Body(inout float3 pos, inout float3 color, inout float alpha, inout 
     float A = lerp(n.widthStay, n.widthLong, lw) * sw * (1.0 + Notice_Clear_WOBBLE * sin(0.37 * t + 0.6));
     float B = lerp(n.heightStay, n.heightLong, lw) * sw * (1.0 + Notice_Clear_WOBBLE * sin(0.29 * t + 2.4));
     if (A < 1e-3) return;
+    B = max(B, 1e-3);                                                // a zero height in the Inspector must not divide by zero below
 
     float scale = (pos.z - Idle_CAM_Z) * Idle_TANH;
-    float2 C = float2(n.viewerX * 2.0, n.viewerY)
-             + Notice_Clear_WANDER * float2(sin(0.21 * t + 1.0), sin(0.17 * t + 2.0));
-    float2 p = pos.xy / scale - C;
+    float2 C0 = float2(n.viewerX * 2.0, n.viewerY)
+              + Notice_Clear_WANDER * float2(sin(0.21 * t + 1.0), sin(0.17 * t + 2.0));
+    float depthF = saturate((pos.z - Notice_Clear_DEPTH_NEAR) / Notice_Clear_DEPTH_SPAN);
 
-    // From the screen into the patch's own space: undo the sway, undo the uneven width, then bend the edge. The patch is a
-    // plain rounded box there.
     float sn, cs;
     sincos(n.tilt * sin(0.23 * t + 1.3), sn, cs);
+    float2 ext = float2(A, B);
+    // Nearly a full round cap, a little less round now and then: the patch is an upright capsule.
+    float r = min(A * (1.0 - Notice_Core_BREATH * (0.5 + 0.5 * sin(0.31 * t + 0.9))), 0.9 * B);
+
+    // Core: this dot is one of the few that stay (fixed per dot, so nothing flickers) or not; how much of the push this layer
+    // takes; how much it slides.
+    bool stayer = Idle_Rand(id, 310) < n.coreKeep * lerp(1.0, Notice_Core_FAR_KEEP, depthF);
+    float takes = lerp(1.0, Notice_Core_FAR_PUSH, depthF);
+    float slide = clamp(n.deflect, 0.0, 1.5) * lerp(1.0, Notice_Deflect_FAR, depthF)
+                * (1.0 + Notice_Deflect_JITTER * (2.0 * Idle_Rand(id, 311) - 1.0));
+    float L = A / clamp(n.rim, 0.05, 0.8);                           // how far from the middle line the push reaches
+    float D0 = A / (Notice_Core_RAMP + 1.0);                         // the dots this near the middle line end up filling the core
+
+    // Wake: the tail from the viewer back to the slower shadow, and how much of it is long enough to count.
+    float2 tail = float2((n.wakeX - n.viewerX) * 2.0, n.wakeY - n.viewerY);
+    float tailLen = length(tail);
+    tail *= min(1.0, Notice_Wake_MAX / max(tailLen, 1e-4));
+    float tailW = smoothstep(Notice_Wake_MIN, Notice_Wake_FULL, min(tailLen, Notice_Wake_MAX));
+
+    // From the screen into the patch's own space: undo the sway, undo the uneven width, then bend the edge. The patch is a plain
+    // capsule there.
+    float2 p = pos.xy / scale - C0;
     float2 pr = float2(cs * p.x + sn * p.y, -sn * p.x + cs * p.y);
     float wv = Notice_WidthScale(pr.y, B, t, n.widthWobble);
     float2 ps = float2(pr.x / wv, pr.y);
     float2 pw = ps + Notice_Warp(ps, t, n.ragged) * sw;
-    float2 ext = float2(A, B);
-    float r = min(Notice_Clear_CORNER * (1.0 + 0.4 * sin(0.31 * t + 0.9)), 0.9 * A);
-    float s = Notice_BoxSdf(pw, ext, r);                              // < 0: inside the patch
+    float s = Notice_BoxSdf(pw, ext, r);                             // < 0: inside the patch
 
-    float depthF = saturate((pos.z - Notice_Clear_DEPTH_NEAR) / Notice_Clear_DEPTH_SPAN);
-
-    // The push, along the way out of the patch. A dot d = s + A from the middle line of the box is moved out by
-    // A * (1 - smoothstep(0, L, d)), L = A / RIM: nothing is left inside, dots beyond L stay where they are, and the move never
-    // turns back on itself, so nothing tears. The dots in between pile up on the rim.
-    float sFinal = s;
-    if ((parts & Notice_PARTS_CLEAR) != 0)
+    // The push, along the way out of the capsule. A dot d from its middle line ends up at dp(d):
+    //   d < D0   dp = A * (d / D0) ^ (1 / (RAMP + 1)): the dots nearest the middle line spread over the whole core, so the density
+    //            there is (r / A) ^ RAMP: nothing in the middle, a smooth climb to 1 at the edge, no step anywhere;
+    //   d >= D0  dp = d + (A - D0) * (1 - smoothstep): the rest are pushed out of the core and the push fades to nothing at L.
+    //            The two pieces meet at dp = A with the same slope, and the dots in between pile up a little on the rim.
+    // dp rises with d everywhere, so the move never turns back on itself and nothing tears. A dot that stays takes less of the push
+    // near the middle line. The push is the outward step plus a sideways step along the capsule, turned by the height: the upper
+    // half slides up and the lower half down on the upstream (left) side, and the other way, weaker, on the lee side.
+    bool clear = (parts & Notice_PARTS_CLEAR) != 0;
+    float pushBody = 0.0;
+    if (clear)
     {
+        float d = max(s + A, 0.0);
+        float dp = d < D0 ? A * pow(d / D0, 1.0 / (Notice_Core_RAMP + 1.0))
+                          : d + (A - D0) * (1.0 - smoothstep(0.0, 1.0, (d - D0) / (L - D0)));
+        float fs = stayer ? smoothstep(0.0, 1.0, d / A) : 1.0;        // the share of the push this dot takes
+
         float2 sg = float2(pw.x >= 0.0 ? 1.0 : -1.0, pw.y >= 0.0 ? 1.0 : -1.0);
         float2 q = abs(pw) - (ext - r);
         float2 qo = max(q, 0.0);
         float2 nrm = (qo.x + qo.y > 0.0) ? normalize(qo) * sg : (q.x > q.y ? float2(sg.x, 0.0) : float2(0.0, sg.y));
-        float L = A / max(n.rim, 0.05);
-        float x = saturate(max(s + A, 0.0) / L);
-        float push = A * (1.0 - x * x * (3.0 - 2.0 * x));
-        float fp = 1.0 - n.rim * 6.0 * x * (1.0 - x);     // how squeezed the dots are here (small = piled up)
-        alpha *= clamp(pow(max(fp, 1e-3), n.rimEven), 0.4, 1.0);
-        float2 dr = float2(nrm.x * push * wv, nrm.y * push);          // back out of the patch's space, onto the screen
-        pos.xy += float2(cs * dr.x - sn * dr.y, sn * dr.x + cs * dr.y) * scale;
-        sFinal = s + push;
+        float up = smoothstep(0.0, 1.0, 0.5 - nrm.x);                 // 1 on the upstream (left) side, 0 on the lee side
+        float shear = -tanh(pw.y / (Notice_Deflect_BAND * B)) * slide * lerp(Notice_Deflect_LEE, 1.0, up);
+        float push = (dp - d) * takes * fs * lerp(Notice_Deflect_LEE_PUSH, 1.0, up);
+        float2 way = nrm + shear * float2(-nrm.y, nrm.x);              // the outward step plus the step along the edge
 
+        // How squeezed the dots are here (small = piled up): only past D0, where the push is fading out.
+        float xs = saturate((d - D0) / (L - D0));
+        float fp = 1.0 - takes * (A - D0) / (L - D0) * 6.0 * xs * (1.0 - xs);
+        alpha *= clamp(pow(max(fp, 1e-3), n.rimEven), 0.4, 1.0);
+        if (stayer)
+        {
+            alpha *= 1.0 - Notice_Core_DIM * (1.0 - fs);               // dimmer and smaller toward the middle line
+            sizeMul *= 1.0 - Notice_Core_SHRINK * (1.0 - fs);
+        }
+        float2 dr = float2(way.x * wv, way.y) * push;                  // back out of the patch's space, onto the screen
+        pos.xy += float2(cs * dr.x - sn * dr.y, sn * dr.x + cs * dr.y) * scale;
+        pushBody = push;
+
+        // The wake band: a soft stripe along the tail, as wide as the capsule and fading toward the far end, that makes the dots
+        // in it dimmer and smaller. It only starts behind the viewer (never on the shell in front or beside them). A weight, not a
+        // push, so the trail is one continuous thin region and not a row of holes.
+        if (tailW > 0.0)
+        {
+            float2 pf = pos.xy / scale - C0;
+            float band = 0.0;
+            [unroll]
+            for (int k = 1; k <= Notice_Wake_SAMPLES; k++)
+            {
+                float lam = (float)k / (float)Notice_Wake_SAMPLES;
+                float sk = Notice_BoxSdf(pf - lam * tail, ext, r);
+                band = max(band, (1.0 - smoothstep(0.0, 1.0, (sk + 0.5 * A) / (2.0 * A))) * (1.0 - Notice_Wake_FADE * lam));
+            }
+            float behind = smoothstep(0.0, 1.0, (dot(pf, tail) / max(length(tail), 1e-4) - 0.2 * A) / (1.2 * A));
+            float wk = tailW * band * behind;
+            alpha *= 1.0 - Notice_Wake_DIM * wk;
+            sizeMul *= 1.0 - Notice_Wake_SHRINK * wk;
+        }
+    }
+
+    float sFinal = s + pushBody;
+    if (clear)
+    {
         // Orbiters. Which dots they are is fixed per dot, so nothing flickers; the share only decides how far each has been drawn in.
         float share = lerp(n.orbitStay, n.orbitLong, lw) * sw * lerp(1.0, Notice_Clear_FAR_SHARE, depthF);
         float wh = saturate((share - Idle_Rand(id, 300)) / 0.1);
@@ -171,7 +270,7 @@ void Notice_Body(inout float3 pos, inout float3 color, inout float alpha, inout 
                 o -= Notice_Warp(o, t, n.ragged) * sw;                           // follow the bent edge
                 o.x *= Notice_WidthScale(o.y, B, t, n.widthWobble);                   // and the uneven width and the sway
                 float2 os = float2(cs * o.x - sn * o.y, sn * o.x + cs * o.y);
-                pos.xy = lerp(pos.xy, (C + os) * scale, W);
+                pos.xy = lerp(pos.xy, (C0 + os) * scale, W);
                 alpha *= 1.0 + Notice_Orbit_GLOW * W;
                 sFinal = lerp(sFinal, off, W);
             }
