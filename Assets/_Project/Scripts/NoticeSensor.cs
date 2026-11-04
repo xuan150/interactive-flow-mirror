@@ -59,6 +59,8 @@ namespace FlowMirror
                 Set(vfx, "Notice Long Stay", o.longStay);
                 Set(vfx, "Notice Viewer X", o.viewerX);
                 Set(vfx, "Notice Viewer Y", o.viewerY);
+                Set(vfx, "Notice Wake X", o.wakeX);
+                Set(vfx, "Notice Wake Y", o.wakeY);
                 Set(vfx, "Notice Quiet", o.quiet);
                 Set(vfx, "Notice Quiet From", o.quietFrom);
                 Set(vfx, "Notice Quiet Until", o.quietUntil);
@@ -72,17 +74,25 @@ namespace FlowMirror
             if (vfx.HasFloat(name)) vfx.SetFloat(name, value);
         }
 
+        // A plus sign at a screen position given as -1..1, arms `half` pixels long.
+        static void DrawCross(float x, float y, float half, float alpha)
+        {
+            var px = (x * 0.5f + 0.5f) * Screen.width;
+            var py = (0.5f - y * 0.5f) * Screen.height;
+            GUI.color = new Color(1f, 0.9f, 0.2f, alpha);
+            GUI.DrawTexture(new Rect(px - half, py - 1f, half * 2f, 2f), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(px - 1f, py - half, 2f, half * 2f), Texture2D.whiteTexture);
+        }
+
         void OnGUI()
         {
             if (!showDebug) return;
             if (last.present)
             {
-                var px = (last.viewerX * 0.5f + 0.5f) * Screen.width;
-                var py = (0.5f - last.viewerY * 0.5f) * Screen.height;
                 var old = GUI.color;
-                GUI.color = new Color(1f, 0.9f, 0.2f, 0.8f);
-                GUI.DrawTexture(new Rect(px - 12f, py - 1f, 24f, 2f), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(px - 1f, py - 12f, 2f, 24f), Texture2D.whiteTexture);
+                DrawCross(last.viewerX, last.viewerY, 12f, 0.8f);
+                // The wake: a smaller dim cross where the world thinks the viewer just was.
+                DrawCross(last.wakeX, last.wakeY, 6f, 0.35f);
                 GUI.color = old;
             }
             GUI.Label(new Rect(10f, 10f, 640f, 24f),

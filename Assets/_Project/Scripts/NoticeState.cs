@@ -28,6 +28,9 @@ namespace FlowMirror
         public float afterglowMax;
         /// Time constant of viewerX chasing the real position; deliberately late.
         public float viewerLag;
+        /// Time constant of the wake: a second, slower shadow of the viewer. The stretch from the viewer back to it is the tail.
+        /// Never quicker than viewerLag (a smaller value, or 0, behaves as viewerLag).
+        public float wakeLag;
         /// Quiet weight from 0 to 1 once someone is there.
         public float quietRise;
 
@@ -45,6 +48,7 @@ namespace FlowMirror
             afterglowMin = 1f,
             afterglowMax = 20f,
             viewerLag = 0.6f,
+            wakeLag = 2.5f,
             quietRise = 5f,
         };
     }
@@ -61,6 +65,9 @@ namespace FlowMirror
         public float viewerX;
         /// -1..1 smoothed viewer y.
         public float viewerY;
+        /// -1..1 wake x, y: where the viewer was a moment ago. Always on the side they came from; meets the viewer once they stop.
+        public float wakeX;
+        public float wakeY;
         /// 0..1 hush strength, for debugging.
         public float hush;
         /// 0..1 weight of the world holding still; rises with the viewer, drains over the afterglow.
@@ -95,7 +102,7 @@ namespace FlowMirror
         // Linear 0..1 progress of the hush; hush is its smoothstep, so there are no corners at either end.
         float h;
         float afterglow;
-        float clock, stay, longStay, viewerX, viewerY, hush;
+        float clock, stay, longStay, viewerX, viewerY, wakeX, wakeY, hush;
         float quiet, quietFrom, quietUntil, quietFrom2, quietUntil2;
 
         public NoticeState(NoticeSettings settings)
@@ -126,6 +133,8 @@ namespace FlowMirror
                 // Snap on entry: sliding in from the last visitor's spot would read as a ghost.
                 viewerX = Clamp(targetX, -1f, 1f);
                 viewerY = Clamp(targetY, -1f, 1f);
+                wakeX = viewerX;
+                wakeY = viewerY;
             }
             else if (!present && wasPresent)
             {
@@ -138,10 +147,15 @@ namespace FlowMirror
             if (present)
             {
                 dwell += dt;
-                // Exact exponential step, stable at any dt. The lag is the point: the world only has a rough idea of where you are.
-                var follow = s.viewerLag > 0f ? 1f - MathF.Exp(-dt / s.viewerLag) : 1f;
+                // The lag is the point: the world only has a rough idea of where you are.
+                var follow = FollowFactor(dt, s.viewerLag);
                 viewerX += (Clamp(targetX, -1f, 1f) - viewerX) * follow;
                 viewerY += (Clamp(targetY, -1f, 1f) - viewerY) * follow;
+                // Chases the same target on a slower clock, so it trails the viewer by itself and catches up once they stop.
+                // Never quicker than the viewer's own lag, or the tail would point ahead of them.
+                var wakeFollow = FollowFactor(dt, MathF.Max(s.wakeLag, s.viewerLag));
+                wakeX += (Clamp(targetX, -1f, 1f) - wakeX) * wakeFollow;
+                wakeY += (Clamp(targetY, -1f, 1f) - wakeY) * wakeFollow;
             }
 
             if (!falling) hushT += dt;
@@ -189,6 +203,8 @@ namespace FlowMirror
             longStay = longStay,
             viewerX = viewerX,
             viewerY = viewerY,
+            wakeX = wakeX,
+            wakeY = wakeY,
             hush = hush,
             quiet = quiet,
             quietFrom = quietFrom,
@@ -197,6 +213,9 @@ namespace FlowMirror
             quietUntil2 = quietUntil2,
             present = wasPresent,
         };
+
+        // Share of the gap closed in one step by a follower with this time constant: exact exponential, stable at any dt. 0 lag = jump.
+        static float FollowFactor(float dt, float lag) => lag > 0f ? 1f - MathF.Exp(-dt / lag) : 1f;
 
         static float Approach(float value, float target, float up, float down) =>
             value < target ? MathF.Min(value + up, target) : MathF.Max(value - down, target);

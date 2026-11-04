@@ -399,6 +399,89 @@ namespace FlowMirror.Tests
         }
 
         [Test]
+        public void Wake_StartsAtTargetOnEntry_SoThereIsNoTailYet()
+        {
+            var state = NewState();
+            Run(state, 1f, false);
+
+            var o = state.Step(Dt, true, 0.8f, -0.4f);
+            Assert.That(o.wakeX, Is.EqualTo(0.8f));
+            Assert.That(o.wakeY, Is.EqualTo(-0.4f));
+        }
+
+        [Test]
+        public void Wake_TrailsBehindTheViewer_AndTakesLongerToArrive()
+        {
+            var state = NewState();
+            state.Step(Dt, true, 0.8f, 0.6f);
+
+            // The target jumps to the other corner. The viewer chases it, the wake chases more slowly, so the wake always stays
+            // on the side the viewer came from and the tail between them is never negative.
+            var o = default(NoticeOutput);
+            for (var i = 0; i < 400; i++) // 8 s
+            {
+                o = state.Step(Dt, true, -0.8f, -0.6f);
+                Assert.That(o.wakeX, Is.GreaterThanOrEqualTo(o.viewerX), $"x step {i}");
+                Assert.That(o.wakeY, Is.GreaterThanOrEqualTo(o.viewerY), $"y step {i}");
+                if (i == 14) // 0.3 s: the viewer is already well on its way, the wake has barely left (2.5 s time constant)
+                {
+                    Assert.That(o.wakeX, Is.InRange(0.55f, 0.7f));
+                    Assert.That(o.wakeY, Is.InRange(0.4f, 0.55f));
+                }
+            }
+
+            Assert.That(o.wakeX, Is.GreaterThan(o.viewerX + 0.05f), "still catching up after 8 s");
+            Assert.That(Run(state, 15f, true, -0.8f, -0.6f).wakeX, Is.EqualTo(-0.8f).Within(0.01f), "and then it arrives");
+            Assert.That(Run(state, 15f, true, -0.8f, -0.6f).wakeY, Is.EqualTo(-0.6f).Within(0.01f));
+        }
+
+        [TestCase(0.1f)] // quicker than the viewer's own lag
+        [TestCase(0f)]   // unset, as in a scene saved before the setting existed
+        public void Wake_NeverCatchesUpFasterThanTheViewer_WhateverTheWakeLag(float wakeLag)
+        {
+            var cfg = Cfg;
+            cfg.wakeLag = wakeLag;
+            var state = new NoticeState(cfg);
+            state.Step(Dt, true, 0.8f, 0f);
+
+            for (var i = 0; i < 400; i++)
+            {
+                var o = state.Step(Dt, true, -0.8f, 0f);
+                Assert.That(o.wakeX, Is.GreaterThanOrEqualTo(o.viewerX), $"step {i}");
+            }
+        }
+
+        [Test]
+        public void Wake_HoldsAfterLeaving_AndSnapsAgainOnReentry()
+        {
+            var state = NewState();
+            Run(state, 1f, true, 0.5f, 0.2f);
+            var last = Run(state, 1f, true, -0.5f, -0.2f);
+
+            var gone = Run(state, 2f, false, 1f, 1f);
+            Assert.That(gone.wakeX, Is.EqualTo(last.wakeX));
+            Assert.That(gone.wakeY, Is.EqualTo(last.wakeY));
+
+            var back = state.Step(Dt, true, -0.9f, 0.7f);
+            Assert.That(back.wakeX, Is.EqualTo(-0.9f));
+            Assert.That(back.wakeY, Is.EqualTo(0.7f));
+        }
+
+        [TestCase(3f, 1f)]
+        [TestCase(-3f, -1f)]
+        public void Wake_ClampedToUnitRange(float target, float expected)
+        {
+            var state = NewState();
+            Assert.That(state.Step(Dt, true, target, target).wakeX, Is.EqualTo(expected), "on entry");
+
+            state = NewState();
+            state.Step(Dt, true, 0f, 0f);
+            var o = Run(state, 20f, true, target, target);
+            Assert.That(o.wakeX, Is.EqualTo(expected).Within(0.01f), "while following");
+            Assert.That(o.wakeY, Is.EqualTo(expected).Within(0.01f));
+        }
+
+        [Test]
         public void ReturningDuringAfterglow_StayDoesNotJump_AndTheVisitStartsOver()
         {
             var state = NewState();
@@ -590,6 +673,7 @@ namespace FlowMirror.Tests
                 Assert.That(o.stay, Is.EqualTo(a.stay));
                 Assert.That(o.hush, Is.EqualTo(a.hush));
                 Assert.That(o.viewerX, Is.EqualTo(a.viewerX));
+                Assert.That(o.wakeX, Is.EqualTo(a.wakeX));
                 Assert.That(o.present, Is.True, "a skipped step doesn't register the exit");
             }
         }
