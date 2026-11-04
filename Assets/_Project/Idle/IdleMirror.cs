@@ -9,6 +9,8 @@ namespace FlowMirror.Idle
     public class IdleMirror : MonoBehaviour
     {
         [SerializeField] VisualEffect world;
+        [Tooltip("0 = a different order of events at every start. Any other number = the same order every time, for A/B recordings. Set it on one mirror only.")]
+        [SerializeField] int fixedSeed;
 
         static readonly string[] Names =
         {
@@ -25,6 +27,13 @@ namespace FlowMirror.Idle
         {
             if (Application.isPlaying && world != null && world.HasFloat("Run Seed"))
                 world.SetFloat("Run Seed", Random.Range(1, 1000000));
+        }
+
+        // A fixed seed is set after every mirror's Awake, so it wins whichever of them holds it.
+        void Start()
+        {
+            if (Application.isPlaying && fixedSeed != 0 && world != null && world.HasFloat("Run Seed"))
+                world.SetFloat("Run Seed", fixedSeed);
         }
 
         void LateUpdate()
