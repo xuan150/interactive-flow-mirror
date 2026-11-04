@@ -677,5 +677,36 @@ namespace FlowMirror.Tests
                 Assert.That(o.present, Is.True, "a skipped step doesn't register the exit");
             }
         }
+
+        [Test]
+        public void Aware_StaysZeroThroughTheDelay_ThenRisesSmoothlyToOneOverAwareRise()
+        {
+            var state = NewState();
+            Assert.That(Run(state, 0.4f, true).aware, Is.EqualTo(0f));
+
+            var maxRise = MaxStep(Cfg.awareRise);
+            var prev = 0f;
+            var steps = (int)((Cfg.noticeDelay - 0.4f + Cfg.awareRise) / Dt + 0.5f) + 2;
+            for (var i = 0; i < steps; i++)
+            {
+                var aware = state.Step(Dt, true, 0f).aware;
+                Assert.That(aware - prev, Is.InRange(0f, maxRise), $"step {i}");
+                prev = aware;
+            }
+
+            Assert.That(prev, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void Aware_DrainsOverTheAfterglow_AndReenteringCarriesOnFromWhereItIs()
+        {
+            var state = NewState();
+            Run(state, 6f, true); // afterglow = 6 * 0.5 = 3 s
+            var half = Run(state, 1.5f, false).aware;
+            Assert.That(half, Is.EqualTo(0.5f).Within(0.02f));
+
+            Assert.That(state.Step(Dt, true, 0f).aware, Is.EqualTo(half), "holds through the new delay, no jump");
+            Assert.That(Run(state, 1.6f, true).aware, Is.EqualTo(1f));
+        }
     }
 }

@@ -33,6 +33,8 @@ namespace FlowMirror
         public float wakeLag;
         /// Quiet weight from 0 to 1 once someone is there.
         public float quietRise;
+        /// Awareness eases from 0 up to 1 over this long, once the notice delay is over; it drains over the afterglow.
+        public float awareRise;
 
         public static NoticeSettings Default => new()
         {
@@ -50,6 +52,7 @@ namespace FlowMirror
             viewerLag = 0.6f,
             wakeLag = 2.5f,
             quietRise = 5f,
+            awareRise = 1f,
         };
     }
 
@@ -70,6 +73,8 @@ namespace FlowMirror
         public float wakeY;
         /// 0..1 hush strength, for debugging.
         public float hush;
+        /// 0..1 how strongly the world feels the viewer (the strength of the flow around them, not its size).
+        public float aware;
         /// 0..1 weight of the world holding still; rises with the viewer, drains over the afterglow.
         public float quiet;
         /// Latest quiet window in world clock: idle events that start inside it are skipped. quietUntil is Forever while it is open.
@@ -101,6 +106,8 @@ namespace FlowMirror
         bool falling;
         // Linear 0..1 progress of the hush; hush is its smoothstep, so there are no corners at either end.
         float h;
+        // Linear 0..1 progress of the awareness; aware is its smoothstep.
+        float a;
         float afterglow;
         float clock, stay, longStay, viewerX, viewerY, wakeX, wakeY, hush;
         float quiet, quietFrom, quietUntil, quietFrom2, quietUntil2;
@@ -168,6 +175,11 @@ namespace FlowMirror
                 if (holdT >= s.hushHold) falling = true;
             }
             hush = Smooth(h);
+
+            // Holds through the delay (so re-entering mid-drain carries on from where it is), then rises; drains once they leave.
+            if (!present) a = MathF.Max(a - dt / MathF.Max(afterglow, Eps), 0f);
+            else if (dwell > s.noticeDelay) a = MathF.Min(a + dt / MathF.Max(s.awareRise, Eps), 1f);
+
             // Slowing can't go below 0, so the clock stays monotonic.
             clock += dt * (1f + (Clamp(s.hushSlow, 0f, 1f) - 1f) * hush);
 
@@ -206,6 +218,7 @@ namespace FlowMirror
             wakeX = wakeX,
             wakeY = wakeY,
             hush = hush,
+            aware = Smooth(a),
             quiet = quiet,
             quietFrom = quietFrom,
             quietUntil = quietUntil,
