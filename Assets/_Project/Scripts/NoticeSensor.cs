@@ -7,7 +7,11 @@ namespace FlowMirror
     // Which parts of the world's reaction are on. None = the plain idle, exactly as before. The values are a bit mask the
     // idle HLSL reads (Notice_PARTS_* in Notice_Common.hlsl).
     [Flags]
-    public enum NoticeParts { None = 0, Clear = 1, Pulse = 2, Focus = 4 }
+    public enum NoticeParts { None = 0, Clear = 1, Pulse = 2, Focus = 4, Flow = 8 }
+
+    // Test only: which of Flow's two pushes are on, to judge each alone against the same visit. The values are the HLSL's test bits
+    // (Notice_FLOW_NO_AVOID 16, Notice_FLOW_NO_SLIDE 32), added to the mask only while Flow is on.
+    public enum FlowTerms { Both = 0, AvoidOnly = 32, SlideOnly = 16 }
 
     // Notice layer glue: reads the viewers from the PersonTracker, runs NoticeState, and hands the result to the idle VFX
     // as exposed floats every frame. The VFX reads them as the world clock and the strength of each stage.
@@ -18,8 +22,10 @@ namespace FlowMirror
         [SerializeField] VisualEffect[] targets;
         [Tooltip("Camera that turns a viewer's position into a screen position. Empty = Main Camera.")]
         [SerializeField] Camera cam;
-        [Tooltip("Clear: dots leave a patch around the viewer. Pulse: a ring comes in and brakes at its rim. Focus: crisp rim, soft far away. None = the plain idle.")]
+        [Tooltip("Clear: dots leave a patch around the viewer. Pulse: a ring comes in and brakes at its rim. Focus: crisp rim, soft far away. Flow: the dots bend around the viewer and drift home once they leave (instead of the other three). None = the plain idle.")]
         [SerializeField] NoticeParts parts = NoticeParts.Clear | NoticeParts.Pulse;
+        [Tooltip("Test only, with Flow on. Both = the real look; Avoid Only = the dots are only moved off the viewer's edge; Slide Only = only slid along it. The pull back home is always on.")]
+        [SerializeField] FlowTerms flowTerms = FlowTerms.Both;
         [Tooltip("Draw where the world thinks the viewer is (a cross) and which stage it is in, on the Game view.")]
         [SerializeField] bool showDebug = true;
         [SerializeField] NoticeSettings settings = NoticeSettings.Default;
@@ -49,11 +55,12 @@ namespace FlowMirror
                 y = view.y * 2f - 1f;
             }
             var o = last = state.Step(Time.deltaTime, present, x, y);
+            var mode = (int)parts | ((parts & NoticeParts.Flow) != 0 ? (int)flowTerms : 0);
 
             foreach (var vfx in targets)
             {
                 if (!vfx) continue;
-                Set(vfx, "Notice Mode", (float)(int)parts);
+                Set(vfx, "Notice Mode", mode);
                 Set(vfx, "Notice Clock", o.clock);
                 Set(vfx, "Notice Stay", o.stay);
                 Set(vfx, "Notice Long Stay", o.longStay);
@@ -61,6 +68,7 @@ namespace FlowMirror
                 Set(vfx, "Notice Viewer Y", o.viewerY);
                 Set(vfx, "Notice Wake X", o.wakeX);
                 Set(vfx, "Notice Wake Y", o.wakeY);
+                Set(vfx, "Notice Aware", o.aware);
                 Set(vfx, "Notice Quiet", o.quiet);
                 Set(vfx, "Notice Quiet From", o.quietFrom);
                 Set(vfx, "Notice Quiet Until", o.quietUntil);
@@ -95,8 +103,8 @@ namespace FlowMirror
                 DrawCross(last.wakeX, last.wakeY, 6f, 0.35f);
                 GUI.color = old;
             }
-            GUI.Label(new Rect(10f, 10f, 640f, 24f),
-                $"notice {parts}   {(last.present ? "viewer in" : "no viewer")}   hush {last.hush:0.00}   stay {last.stay:0.00}   long {last.longStay:0.00}   x {last.viewerX:0.00}  y {last.viewerY:0.00}");
+            GUI.Label(new Rect(10f, 10f, 800f, 24f),
+                $"notice {parts}{((parts & NoticeParts.Flow) != 0 && flowTerms != FlowTerms.Both ? $" ({flowTerms})" : "")}   {(last.present ? "viewer in" : "no viewer")}   aware {last.aware:0.00}   hush {last.hush:0.00}   stay {last.stay:0.00}   long {last.longStay:0.00}   x {last.viewerX:0.00}  y {last.viewerY:0.00}");
         }
     }
 }

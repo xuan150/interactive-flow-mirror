@@ -566,6 +566,7 @@ IdleFl Idle_Fly(float age)
 #include "Assets/_Project/Notice/Notice_Pulse.hlsl"
 #include "Assets/_Project/Notice/Notice_Focus.hlsl"
 #include "Assets/_Project/Notice/Notice_Clear.hlsl"
+#include "Assets/_Project/Notice/Notice_Flow.hlsl"
 
 /// Hidden
 void Idle_NoticeBody(inout float3 pos, inout float3 color, inout float alpha, inout float sizeMul,
@@ -574,8 +575,10 @@ void Idle_NoticeBody(inout float3 pos, inout float3 color, inout float alpha, in
     Notice_Body(pos, color, alpha, sizeMul, id, ribbon, u, dust, Idle_NOTICE, Idle_NOTICE_MODE);
 }
 
+// noticeOff, noticeVel: the dot's stored flow offset and its speed (the entry points load and save the attributes, so the effects
+// that do not store them never see them). noticeDt: seconds since this effect's last update.
 /// Hidden
-void Idle_Core(inout VFXAttributes attributes, bool mirror)
+void Idle_Core(inout VFXAttributes attributes, bool mirror, inout float2 noticeOff, inout float2 noticeVel, float noticeDt)
 {
     uint id = attributes.particleId;
     float t = attributes.age * Idle_MOTION;
@@ -784,9 +787,17 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
     color = lerp(color, float3(0.75, 0.88, 1.0), 0.12 * hlS);
     color = lerp(color, float3(1.0, 0.82, 0.55), 0.12 * hlD);
 
-    // The world noticing a viewer: reshapes the particle in the world, so its reflection follows.
+    // The world noticing a viewer: reshapes the particle in the world, so its reflection follows. Flow bends the dots around the
+    // viewer and remembers how far; the other parts are worked out fresh every frame, so the remembered offset is let go.
     float sizeMul = 1.0;
-    Idle_NoticeBody(pos, color, alpha, sizeMul, id, rc, u, dust);
+    if ((Idle_NOTICE_MODE & Notice_PARTS_FLOW) != 0)
+        Notice_Flow(pos, noticeOff, noticeVel, id, rc, u, dust, Idle_NOTICE, Idle_NOTICE_MODE, noticeDt);
+    else
+    {
+        noticeOff = 0.0;
+        noticeVel = 0.0;
+        Idle_NoticeBody(pos, color, alpha, sizeMul, id, rc, u, dust);
+    }
 
     // Never below the horizon: what would sink is eased onto the line and fades, so it piles up as a soft contact edge.
     float d = pos.z - Idle_CAM_Z;
@@ -880,7 +891,7 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
-/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus. 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and 32 are test switches). 0 = none (the plain idle). Set by NoticeSensor.
 /// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
 /// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
 /// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
@@ -911,6 +922,8 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// noticeWakeY: Screen y of that slower shadow. Set by NoticeSensor.
 /// noticeCoreKeep: Share of the dots that do not leave the middle of the core, dimmer and smaller the closer to the middle line they are (the far layers keep 3 times as many). The core is already thin on its own, a ramp that is empty on the middle line and full at the edge; this adds a few dots on top. 0 = just the ramp.
 /// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
+/// noticeAware: 0 - 1, how strongly the world feels the viewer: the strength of the flow around them (Flow only; their size stays). Set by NoticeSensor.
+/// noticeDt: Seconds since this effect's last update, from the Delta Time (VFX) node. Flow moves each dot's remembered offset by it.
 void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
              in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
              in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -924,7 +937,8 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
               in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
               in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
               in float noticePulseStop,
-              in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect)
+              in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect,
+              in float noticeAware, in float noticeDt)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -958,12 +972,25 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
     Idle_NOTICE.pulseSweep = noticePulseSweep;
     Idle_NOTICE.pulseStop = noticePulseStop;
     Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
+    Idle_NOTICE.aware = noticeAware;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;
         Idle_QWIN = float4(noticeQuietFrom, noticeQuietUntil, noticeQuietFrom2, noticeQuietUntil2);
     }
-    Idle_Core(attributes, false);
+    // The stored flow offset. Guarded because Idle_Fly compiles this file too and does not store it (VFX defines VFX_USE_<NAME>_CURRENT
+    // for every attribute an effect uses).
+    float2 noticeOff = 0.0;
+    float2 noticeVel = 0.0;
+#if defined(VFX_USE_NOTICEOFFSET_CURRENT) && defined(VFX_USE_NOTICEVELOCITY_CURRENT)
+    noticeOff = attributes.noticeOffset;
+    noticeVel = attributes.noticeVelocity;
+#endif
+    Idle_Core(attributes, false, noticeOff, noticeVel, noticeDt);
+#if defined(VFX_USE_NOTICEOFFSET_CURRENT) && defined(VFX_USE_NOTICEVELOCITY_CURRENT)
+    attributes.noticeOffset = noticeOff;
+    attributes.noticeVelocity = noticeVel;
+#endif
 }
 
 /// alpha: How see-through the dots are. Higher = brighter, especially where dots overlap.
@@ -987,7 +1014,7 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
-/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus. 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and 32 are test switches). 0 = none (the plain idle). Set by NoticeSensor.
 /// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
 /// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
 /// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
@@ -1018,6 +1045,8 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// noticeWakeY: Screen y of that slower shadow. Set by NoticeSensor.
 /// noticeCoreKeep: Share of the dots that do not leave the middle of the core, dimmer and smaller the closer to the middle line they are (the far layers keep 3 times as many). The core is already thin on its own, a ramp that is empty on the middle line and full at the edge; this adds a few dots on top. 0 = just the ramp.
 /// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
+/// noticeAware: 0 - 1, how strongly the world feels the viewer: the strength of the flow around them (Flow only; their size stays). Set by NoticeSensor.
+/// noticeDt: Seconds since this effect's last update, from the Delta Time (VFX) node. Flow moves each dot's remembered offset by it.
 void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
                     in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
                     in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -1031,7 +1060,8 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
                      in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
                      in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
                      in float noticePulseStop,
-                     in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect)
+                     in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect,
+                     in float noticeAware, in float noticeDt)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -1065,12 +1095,25 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
     Idle_NOTICE.pulseSweep = noticePulseSweep;
     Idle_NOTICE.pulseStop = noticePulseStop;
     Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
+    Idle_NOTICE.aware = noticeAware;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;
         Idle_QWIN = float4(noticeQuietFrom, noticeQuietUntil, noticeQuietFrom2, noticeQuietUntil2);
     }
-    Idle_Core(attributes, true);
+    // The stored flow offset. Guarded because Idle_Fly compiles this file too and does not store it (VFX defines VFX_USE_<NAME>_CURRENT
+    // for every attribute an effect uses).
+    float2 noticeOff = 0.0;
+    float2 noticeVel = 0.0;
+#if defined(VFX_USE_NOTICEOFFSET_CURRENT) && defined(VFX_USE_NOTICEVELOCITY_CURRENT)
+    noticeOff = attributes.noticeOffset;
+    noticeVel = attributes.noticeVelocity;
+#endif
+    Idle_Core(attributes, true, noticeOff, noticeVel, noticeDt);
+#if defined(VFX_USE_NOTICEOFFSET_CURRENT) && defined(VFX_USE_NOTICEVELOCITY_CURRENT)
+    attributes.noticeOffset = noticeOff;
+    attributes.noticeVelocity = noticeVel;
+#endif
 }
 
 /// alpha: How see-through the dots are. Higher = brighter, especially where dots overlap.
