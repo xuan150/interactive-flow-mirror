@@ -109,7 +109,7 @@ Viewer A/B/C、MousePersonSource -> PersonTracker -> NoticeSensor (Scripts/)
 - 輸入：Play Main，**關掉 Choreography**，滑鼠左鍵點一下＝觀眾進場（畫面上有彩色方框），拖曳移動，右鍵移除。世界只跟第一個人。`NoticeSensor` 用相機把人的位置投影成螢幕 (x, y)；Game View 左上角的文字與黃色十字顯示世界認為觀眾在哪、現在是哪個階段（`Show Debug`）
 - 世界時鐘：Parts 不是 None 時，`IdleVeil`／`IdleVeilReflect`／`IdleFly` 把粒子的 `age` 改成 `Notice Clock`，屏息時整個世界一起變慢；安靜窗口也用這個時鐘
 - `NoticeState` 是純邏輯，有 EditMode 測試（`FlowMirror.Tests` 共 48 個，含顏色交換與尾流，全過）
-- 新增 VFX 輸入屬性用腳本複製 `Run Seed` 的接線，不手動拖線。**坑**：新節點若沒被加進 graph 的 children 清單，Unity 匯入時會判定「無效連結」，**自動重存檔並把連結清掉**；要先確認三份清單（graph children、block input slots、parameter info）都有，再匯入。匯入後用 `HasFloat` 確認屬性存在
+- 新增 VFX 輸入屬性用腳本複製 `Run Seed` 的接線，不手動拖線。**坑**：新節點若沒被加進 graph 的 children 清單，Unity 匯入時會判定「無效連結」，**自動重存檔並把連結清掉**；要先確認三份清單（graph children、block input slots、parameter info）都有，再匯入。匯入後用 `HasFloat` 確認屬性存在。**第二個坑（第五輪踩到，整個畫面的粒子都不見）**：`Idle_Veil.hlsl` 入口函式的簽名只要有語法錯誤（例如 `void` 和函式名黏在一起），Unity 匯入時就找不到那個函式，會悄悄把 Custom HLSL 區塊改指向 `IdleFly`、砍掉其他輸入槽並**存檔**；之後把 HLSL 修好也不會恢復，而 `HasFloat` 仍然是 true。每次匯入後跑 `node docs/notice-vfx-check.js`（檢查區塊呼叫的函式、輸入槽順序與簽名一致、每個槽都連到屬性），並看 `git diff --numstat` 的 `.vfx` 幾乎只有新增行。壞了就從上一個好的 commit 還原 `.vfx` 再重新接線
 
 ## 點子池（這次不做）
 
