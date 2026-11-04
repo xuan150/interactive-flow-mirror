@@ -8,20 +8,20 @@ const K = {
   // The body: an upright capsule of a fixed size (Width Stay, Height Stay) that wobbles, breathes, sways and wanders like Clear's.
   WOBBLE: 0.12, BREATH: 0.1, WANDER: 0.1,
   // How fast a fully aware dot is moved off the edge (AVOID) and along it (SLIDE), screen half-heights per second.
-  AVOID: 0.07, SLIDE: 0.14,
+  AVOID: 0.1, SLIDE: 0.3,
   // The field reaches this far outside the edge, and fades out this share of the half-width inside it (the middle is left alone).
-  REACH: 0.45, INNER: 0.6,
+  REACH: 0.6, INNER: 0.6,
   // Along the edge the dot keeps the part of its own flow that runs along the edge: none where the flow hits the edge head-on, all
   // of it where it runs past; SIGN_BAND is how much along-ness counts as all of it. FALLBACK is the little "up on the upper half,
   // down on the lower half" added so the dots whose flow hits head-on (or that hardly move, the far dust) still pick a side.
-  SIGN_BAND: 0.4, FALLBACK: 0.15,
+  SIGN_BAND: 0.25, FALLBACK: 0.15,
   // Spring back to the idle place (seconds), never quicker than RETURN_RATIO response times (keeps the damping ratio >= 0.6).
-  RETURN: 2.5, RETURN_RATIO: 1.5,
+  RETURN: 3, RETURN_RATIO: 1.5,
   // Hard limits: offset (half-heights), offset speed (half-heights per second), one step (seconds).
-  O_MAX: 0.45, W_MAX: 0.6, DT_MAX: 0.1,
+  O_MAX: 0.8, W_MAX: 0.8, DT_MAX: 0.1,
   // Awareness: each dot wakes up at its own point of the rise. Strength breathes this much per dot; the far layers take FAR_GAIN of
   // the strength and are FAR_SLOW times slower.
-  STAGGER: 0.6, JITTER: 0.25, FAR_GAIN: 0.4, FAR_SLOW: 1.5,
+  STAGGER: 0.6, JITTER: 0.45, FAR_GAIN: 0.4, FAR_SLOW: 1.5,
   // Per ribbon (0-1 far dust, 2-5 the story ribbons): strength and response time (seconds).
   GAIN: [0.35, 0.35, 1.0, 0.7, 0.9, 0.6],
   RESP: [1.4, 1.4, 0.6, 1.0, 0.8, 1.2],
@@ -153,7 +153,7 @@ function notice(settings = {}) {
 }
 
 // ---- A small world: dots on wavy ribbons streaming left to right at 0.04-0.11 half-heights per second, plus still far dust.
-function world(count = 12000, seed = 1) {
+function world(count = 12000, seed = 1, thick = 1) {
   let rs = seed * 9301 + 49297;
   const rnd = () => { rs = (rs * 1103515245 + 12345) % 2147483648; return rs / 2147483648; };
   const ribbons = [
@@ -165,7 +165,7 @@ function world(count = 12000, seed = 1) {
     const dust = i % 6 === 0;
     const rb = ribbons[i % 4];
     dots.push({
-      dust, rb, x0: rnd() * 4.4 - 2.2, u: 0.076 * (0.5 + rnd()), g: (rnd() + rnd() + rnd() - 1.5) / 1.5, y0: rnd() * 2.2 - 1.1,
+      dust, rb, x0: rnd() * 4.4 - 2.2, u: 0.076 * (0.5 + rnd()), g: (rnd() + rnd() + rnd() - 1.5) / 1.5 * thick, y0: rnd() * 2.2 - 1.1,
       ribbon: dust ? 0 : rb.r, depthF: dust ? 0.95 : rb.depthF, stag: rnd(), phase: rnd(), rate: rnd(), respJ: rnd(),
       x: 0, y: 0, fx: 1, fy: 0, ox: 0, oy: 0, wx: 0, wy: 0, a: 0.22 + 0.2 * rnd(),
     });
@@ -183,8 +183,8 @@ function world(count = 12000, seed = 1) {
 }
 
 // Runs the visit. dtAt(i) gives each step's dt; onStep(t, n, b, dots) sees every step. Returns stats.
-function run({ count = 12000, until = 40, dtAt = () => 1 / 60, path = PATH, terms = BOTH, onStep } = {}) {
-  const w = world(count);
+function run({ count = 12000, until = 40, dtAt = () => 1 / 60, path = PATH, terms = BOTH, onStep, thick = 1 } = {}) {
+  const w = world(count, 1, thick);
   const ns = notice();
   let t = 0, i = 0, nan = 0, oMax = 0, wMax = 0, jump = 0;
   while (t < until) {
@@ -249,14 +249,15 @@ if (require.main === module) {
   for (const [name, dtAt] of [['144 Hz', () => 1 / 144], ['60 Hz', () => 1 / 60], ['30 Hz', () => 1 / 30], ['10 Hz', () => 0.1],
     ['ragged 5-100 ms', (i) => 0.005 + 0.095 * ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1]]) {
     const samples = {};
-    const r = run({ count: 4000, dtAt, onStep: (t, n, b, dots) => {
-      for (const at of [7, 10, 15, 23, 26, 30, 38]) if (!samples[at] && t >= at) samples[at] = dots.reduce((s, d) => s + Math.hypot(d.ox, d.oy), 0) / dots.length;
+    const r = run({ count: 4000, until: 46, dtAt, onStep: (t, n, b, dots) => {
+      for (const at of [7, 10, 15, 23, 26, 30, 44]) if (!samples[at] && t >= at) samples[at] = dots.reduce((s, d) => s + Math.hypot(d.ox, d.oy), 0) / dots.length;
     } });
     runs[name] = samples;
     check(r.nan === 0 && r.oMax <= K.O_MAX + 1e-9 && r.wMax <= K.W_MAX + 1e-9,
       `${name}: no NaN, |o| max ${r.oMax.toFixed(3)} <= ${K.O_MAX}, |w| max ${r.wMax.toFixed(3)} <= ${K.W_MAX}`);
     check(r.jump <= K.W_MAX + 1e-6, `${name}: the offset never moves a dot faster than W_MAX (fastest ${r.jump.toFixed(3)} half-heights/s)`);
-    check(samples[38] < 0.002, `${name}: 14 s after leaving the mean offset is back to ${samples[38].toFixed(4)} (< 0.002)`);
+    // Back home: the awareness drains over the afterglow (9.5 s after a 19 s visit), then the spring takes a few RETURN times.
+    check(samples[44] < 0.02 * samples[23], `${name}: 20 s after leaving the mean offset is ${(samples[44] / samples[23] * 100).toFixed(2)}% of what it was while standing (< 2%)`);
   }
   // The same visit at different frame rates should look the same: mean offset within 15% of the 144 Hz run once settled. (Not
   // during the first second: a slow frame rate samples the entry up to two frames late, which shifts the onset, not the reaction.)

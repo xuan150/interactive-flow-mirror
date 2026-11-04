@@ -10,8 +10,8 @@ namespace FlowMirror
     public enum NoticeParts { None = 0, Clear = 1, Pulse = 2, Focus = 4, Flow = 8 }
 
     // Test only: which of Flow's two pushes are on, to judge each alone against the same visit. The values are the HLSL's test bits
-    // (Notice_FLOW_NO_AVOID 16, Notice_FLOW_NO_SLIDE 32), added to the mask only while Flow is on.
-    public enum FlowTerms { Both = 0, AvoidOnly = 32, SlideOnly = 16 }
+    // (Notice_FLOW_NO_AVOID 16, Notice_FLOW_NO_SLIDE 32, Notice_FLOW_SHOW_OFFSET 64), added to the mask only while Flow is on.
+    public enum FlowTerms { Both = 0, AvoidOnly = 32, SlideOnly = 16, ShowOffset = 64 }
 
     // Notice layer glue: reads the viewers from the PersonTracker, runs NoticeState, and hands the result to the idle VFX
     // as exposed floats every frame. The VFX reads them as the world clock and the strength of each stage.
@@ -24,7 +24,7 @@ namespace FlowMirror
         [SerializeField] Camera cam;
         [Tooltip("Clear: dots leave a patch around the viewer. Pulse: a ring comes in and brakes at its rim. Focus: crisp rim, soft far away. Flow: the dots bend around the viewer and drift home once they leave (instead of the other three). None = the plain idle.")]
         [SerializeField] NoticeParts parts = NoticeParts.Clear | NoticeParts.Pulse;
-        [Tooltip("Test only, with Flow on. Both = the real look; Avoid Only = the dots are only moved off the viewer's edge; Slide Only = only slid along it. The pull back home is always on.")]
+        [Tooltip("Test only, with Flow on. Both = the real look; Avoid Only = the dots are only moved off the viewer's edge; Slide Only = only slid along it; Show Offset = Both, with the dots tinted red by how far they have been moved. The pull back home is always on.")]
         [SerializeField] FlowTerms flowTerms = FlowTerms.Both;
         [Tooltip("Draw where the world thinks the viewer is (a cross) and which stage it is in, on the Game view.")]
         [SerializeField] bool showDebug = true;

@@ -48,5 +48,7 @@ struct IdleNotice
 // Test only: turn one of Flow's two pushes off, to judge the other alone (NoticeSensor's Flow Terms).
 #define Notice_FLOW_NO_AVOID 16
 #define Notice_FLOW_NO_SLIDE 32
+// Test only: tint the dots by how far Flow has moved them, to see where it acts and that it acts at all.
+#define Notice_FLOW_SHOW_OFFSET 64
 
 #endif

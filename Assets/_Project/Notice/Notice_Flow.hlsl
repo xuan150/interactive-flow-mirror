@@ -16,27 +16,27 @@
 #define NOTICE_FLOW_INCLUDED
 
 // How fast a fully aware dot is moved off the edge and along it, screen half-heights per second.
-#define Notice_Flow_AVOID 0.07
-#define Notice_Flow_SLIDE 0.14
+#define Notice_Flow_AVOID 0.1
+#define Notice_Flow_SLIDE 0.3
 // How far outside the edge the field reaches (screen half-heights), and the share of the half-width inside the edge over which it
 // fades out.
-#define Notice_Flow_REACH 0.45
+#define Notice_Flow_REACH 0.6
 #define Notice_Flow_INNER 0.6
 // Along the edge a dot keeps the part of its own flow that runs along the edge; SIGN_BAND is how much counts as all of it. FALLBACK
 // is the hint of up on the upper half and down on the lower half, so dots whose flow hits head-on (or the far dust) pick a side.
-#define Notice_Flow_SIGN_BAND 0.4
+#define Notice_Flow_SIGN_BAND 0.25
 #define Notice_Flow_FALLBACK 0.15
 // Spring back home (seconds); never quicker than RETURN_RATIO response times, which keeps the damping ratio at 0.6 or more.
-#define Notice_Flow_RETURN 2.5
+#define Notice_Flow_RETURN 3.0
 #define Notice_Flow_RETURN_RATIO 1.5
 // Hard limits: offset (screen half-heights), offset speed (half-heights per second), one step (seconds).
-#define Notice_Flow_O_MAX 0.45
-#define Notice_Flow_W_MAX 0.6
+#define Notice_Flow_O_MAX 0.8
+#define Notice_Flow_W_MAX 0.8
 #define Notice_Flow_DT_MAX 0.1
 // Each dot wakes up at its own point of the awareness rise (up to this share of it); its strength breathes slowly by this share;
 // the far layers take FAR_GAIN of the strength and are FAR_SLOW times slower.
 #define Notice_Flow_STAGGER 0.6
-#define Notice_Flow_JITTER 0.25
+#define Notice_Flow_JITTER 0.45
 #define Notice_Flow_FAR_GAIN 0.4
 #define Notice_Flow_FAR_SLOW 1.5
 // Per ribbon (0-1 the far dust, 2-5 the story ribbons): strength, and response time in seconds.
@@ -59,7 +59,7 @@ float2 Notice_FlowDir(uint ribbon, float u, bool dust, float clock)
 
 // off, vel: the dot's stored offset (screen half-heights) and its speed. dt: seconds since the last update of this effect.
 /// Hidden
-void Notice_Flow(inout float3 pos, inout float2 off, inout float2 vel, uint id, uint ribbon, float u, bool dust,
+void Notice_Flow(inout float3 pos, inout float3 color, inout float2 off, inout float2 vel, uint id, uint ribbon, float u, bool dust,
                  IdleNotice n, int parts, float dt)
 {
     // A NaN would stay forever in a stored attribute: start that dot over instead.
@@ -132,6 +132,8 @@ void Notice_Flow(inout float3 pos, inout float2 off, inout float2 vel, uint id, 
         vel -= max(dot(vel, dir), 0.0) * dir;                            // no speed left pushing past the limit
     }
     pos.xy += off * scale;
+    // Test only: the dots the viewer has moved turn red, the more the further (all of it at 0.2 screen half-heights).
+    if ((parts & Notice_FLOW_SHOW_OFFSET) != 0) color = lerp(color, float3(1.0, 0.15, 0.05), saturate(length(off) / 0.2));
 }
 
 #endif

@@ -791,7 +791,7 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror, inout float2 noticeO
     // viewer and remembers how far; the other parts are worked out fresh every frame, so the remembered offset is let go.
     float sizeMul = 1.0;
     if ((Idle_NOTICE_MODE & Notice_PARTS_FLOW) != 0)
-        Notice_Flow(pos, noticeOff, noticeVel, id, rc, u, dust, Idle_NOTICE, Idle_NOTICE_MODE, noticeDt);
+        Notice_Flow(pos, color, noticeOff, noticeVel, id, rc, u, dust, Idle_NOTICE, Idle_NOTICE_MODE, noticeDt);
     else
     {
         noticeOff = 0.0;
