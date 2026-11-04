@@ -26,7 +26,7 @@ namespace FlowMirror
             id = null;
         }
 
-        // Edit mode shows no figures: draw the body (SilhouetteMask Height 6, the 2-wide capsule) to stage the choreography.
+        // Nothing is drawn for a viewer, so mark where they stand (a 2 x 6 box) to stage the choreography in edit mode.
         void OnDrawGizmos() => Gizmos.DrawWireCube(transform.position, new Vector3(2f, 6f, 0f));
     }
 }

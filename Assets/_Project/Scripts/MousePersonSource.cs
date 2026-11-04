@@ -8,7 +8,7 @@ namespace FlowMirror
     [RequireComponent(typeof(PersonTracker))]
     public class MousePersonSource : MonoBehaviour
     {
-        [Tooltip("Camera used to turn the mouse position into world space. Empty = Main Camera.")]
+        [Tooltip("Camera used to turn the mouse position into the viewers' plane. Empty = Main Camera.")]
         [SerializeField] Camera cam;
         [Tooltip("How close the mouse must be to grab or remove a person, measured from its center.")]
         [SerializeField] float pickRadius = 0.6f;
@@ -28,7 +28,9 @@ namespace FlowMirror
             var mouse = Mouse.current;
             if (mouse == null) return;
 
-            Vector2 point = cam.ScreenToWorldPoint(mouse.position.ReadValue());
+            // The distance puts the point on the plane the viewers stand on (z = 0); a perspective camera needs it, an orthographic one ignores it.
+            Vector2 screen = mouse.position.ReadValue();
+            Vector2 point = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -cam.transform.position.z));
             hovered = Pick(point);
 
             if (mouse.leftButton.wasPressedThisFrame)

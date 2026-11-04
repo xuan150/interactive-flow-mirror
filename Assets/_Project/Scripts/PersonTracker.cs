@@ -82,6 +82,16 @@ namespace FlowMirror
 
         int IndexOf(uint id) => persons.FindIndex(p => p.id == id);
 
+        // Nothing is drawn for a viewer, so mark every person who is there (scripted or mouse), in their own color.
+        void OnDrawGizmos()
+        {
+            foreach (var p in persons)
+            {
+                Gizmos.color = new Color(p.colorA.x, p.colorA.y, p.colorA.z, 1f);
+                Gizmos.DrawWireCube(p.position, new Vector3(1.6f, 5.6f, 0f));
+            }
+        }
+
         void LateUpdate()
         {
             var dt = Time.deltaTime;
