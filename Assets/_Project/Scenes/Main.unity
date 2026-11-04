@@ -324,7 +324,6 @@ GameObject:
   - component: {fileID: 676246323}
   - component: {fileID: 676246322}
   - component: {fileID: 676246321}
-  - component: {fileID: 676246325}
   m_Layer: 0
   m_Name: People
   m_TagString: Untagged
@@ -344,7 +343,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b5a5ef56f32566468c55b2fd17f2f6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.MousePersonSource
-  cam: {fileID: 961739752}
+  cam: {fileID: 0}
   pickRadius: 1.2
 --- !u!114 &676246322
 MonoBehaviour:
@@ -382,25 +381,6 @@ Transform:
   - {fileID: 189688758}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &676246325
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 676246320}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1a09c3eb454c124d8308300adb43cef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.SilhouetteMask
-  shader: {fileID: 7200000, guid: ed2d1c8fc585dd24fac636b366c728cb, type: 3}
-  silhouette: {fileID: 2800000, guid: e98063a42d8aee945a581c042edb57d2, type: 3}
-  targets:
-  - {fileID: 0}
-  height: 6
-  softness: 1
-  showDebug: 0
 --- !u!1 &787227082
 GameObject:
   m_ObjectHideFlags: 0
@@ -619,6 +599,72 @@ VisualEffect:
       m_Array: []
     m_Bool:
       m_Array: []
+--- !u!1 &893781756
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 893781757}
+  - component: {fileID: 893781758}
+  m_Layer: 0
+  m_Name: Notice
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &893781757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 893781756}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &893781758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 893781756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aecce5a09470da54495fb1e7219f0e03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FlowMirror::FlowMirror.NoticeSensor
+  tracker: {fileID: 676246322}
+  targets:
+  - {fileID: 791721004}
+  - {fileID: 1543335433}
+  - {fileID: 2063195743}
+  cam: {fileID: 0}
+  parts: 3
+  showDebug: 1
+  settings:
+    noticeDelay: 0.5
+    hushRise: 1.5
+    hushHold: 1.5
+    hushFall: 2.5
+    hushSlow: 0.25
+    passingMax: 3
+    longAfter: 10
+    rampTime: 4
+    afterglowPerDwell: 0.5
+    afterglowMin: 1
+    afterglowMax: 20
+    viewerLag: 0.6
+    quietRise: 5
 --- !u!1 &961739749
 GameObject:
   m_ObjectHideFlags: 0
@@ -1097,6 +1143,9 @@ VisualEffect:
       - m_Value: 2.4
         m_Name: Receiver Glow
         m_Overridden: 1
+      - m_Value: 0
+        m_Name: Run Seed
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -1146,7 +1195,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!320 &1748459165
 PlayableDirector:
   m_ObjectHideFlags: 0
@@ -1414,6 +1463,9 @@ VisualEffect:
       - m_Value: 2.4
         m_Name: Receiver Glow
         m_Overridden: 1
+      - m_Value: 0
+        m_Name: Run Seed
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -1461,3 +1513,4 @@ SceneRoots:
   - {fileID: 791721002}
   - {fileID: 1543335431}
   - {fileID: 2063195744}
+  - {fileID: 893781757}
