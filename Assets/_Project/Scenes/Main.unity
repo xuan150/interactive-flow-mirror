@@ -573,11 +573,17 @@ VisualEffect:
       - m_Value: 90
         m_Name: Depth Drift Period
         m_Overridden: 1
-      - m_Value: 1.05
+      - m_Value: 2.5
         m_Name: Width Follow
         m_Overridden: 0
       - m_Value: 30
         m_Name: Transfer Interval
+        m_Overridden: 1
+      - m_Value: 0
+        m_Name: Notice Orbit Share Long
+        m_Overridden: 1
+      - m_Value: 0
+        m_Name: Notice Orbit Share Stay
         m_Overridden: 1
     m_Vector2f:
       m_Array: []
@@ -649,7 +655,7 @@ MonoBehaviour:
   - {fileID: 1543335433}
   - {fileID: 2063195743}
   cam: {fileID: 0}
-  parts: 3
+  parts: 1
   showDebug: 1
   settings:
     noticeDelay: 0.5
@@ -664,6 +670,7 @@ MonoBehaviour:
     afterglowMin: 1
     afterglowMax: 20
     viewerLag: 0.6
+    wakeLag: 2.5
     quietRise: 5
 --- !u!1 &961739749
 GameObject:
