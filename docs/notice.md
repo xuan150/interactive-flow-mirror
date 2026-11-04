@@ -27,7 +27,24 @@
 
 反應從 0 升到滿約 4 秒。順序是：**光紗變慢 → 讓出空間 → 流速恢復**。
 
-## 現在的設計（第五輪）
+## 現在的設計（第六輪：繞流 Flow）
+
+2026-11-04。第五輪看起來仍像「一塊黑色區域把粒子擋住」，不是粒子繞著邊緣走。原因在架構：Clear 是**每幀從頭算的靜態變形**（粒子位置只由當下的人物場決定），粒子流進來時被立刻重新擺放，所以永遠是同一個洞；關掉 alpha（Rim Burn Guard 0、站著不動、沒有暗帶）洞也還在。第六輪改成**人物影響既有粒子的運動**，Clear 原封不動保留，Parts 二選一做 A/B。
+
+- **每顆粒子多記兩個值**：`noticeOffset`（偏移，螢幕半高）與 `noticeVelocity`（偏移的速度），是 `Idle_Veil.vfx`、`Idle_Reflect.vfx` 的自訂屬性（Vector2），在 Update 之間保存，出生時為 0。**待機位置照舊每幀無狀態算出**（光紗、交換、凝結、顏色、透明度、大小、景深都不動），最後位置 = 待機位置 + 偏移。不用內建 `velocity`：Update 的 Integration 是 Euler，任何 block 寫 `velocity` 就會自動補一個 `position += velocity * dt`，跟我們的偏移重複積分
+- **每次更新**：`target = 察覺 × 強度 × h(s) × (避讓 × 往外 + 滑行 × 順流分量 × 沿邊) − 偏移 / 回復時間`；`速度 += (target − 速度) × (1 − e^(−dt / 反應時間))`；`偏移 += 速度 × dt`（半隱式）。dt 是 VFX 自己的 `Delta Time (VFX)`，不經 C#
+  - **避讓**：沿身體邊緣法線往外，0.07 螢幕半高/秒。`h(s)` 在邊緣最大、邊緣外 0.45 處歸 0、往身體內 60% 半寬處歸 0，所以中間不推，穿過去的粒子讓中間不會空
+  - **沿邊滑行**：0.14 螢幕半高/秒。方向**以粒子原本的流向為準**：取光紗中線在螢幕上的切線（遠景塵埃幾乎不動，用世界的左→右），只保留它沿著邊緣的那一份（`tanh(沿邊分量 / 0.4)`）。正面撞上的流幾乎不滑，從旁邊經過的整份順著滑；上揚的光紗從上面繞、下沉的從下面繞。後備：流向正對邊緣時，加一點「上半往上、下半往下」（0.15）讓它選邊，不是主規則
+  - **回復**：彈簧一直在，回復時間 2.5 秒（至少 1.5 倍反應時間，阻尼比 ≥ 0.6）。人走後察覺退去，粒子延遲回到原處
+  - **察覺 Awareness**：`NoticeState.aware`，進場 0.5 秒後在 1 秒內平滑升到 1（`Aware Rise`），離開後在餘韻時間內退去，重新進場從當下的值接續。**人物範圍固定**（Width Stay / Height Stay，不再從 0 長大），只有強度在變。每顆粒子在這段上升裡的不同時間醒來（最多晚 60%），所以是一部分先察覺
+  - **各層不同**：每條光紗自己的強度與反應時間（近景故事光紗 0.6–1.2 秒、強度 0.6–1；遠景塵埃 1.4 秒、強度 0.35），再依當下景深連續變化（最遠 ×0.4 強度、慢 1.5 倍），每顆粒子的強度再慢慢呼吸 ±25%。**沒有固定比例隨機忽略人物**
+  - 身體形狀沿用 Clear 的膠囊、扭彎、寬度起伏、傾斜、中心飄移；**不改透明度、顏色、大小**，沒有遮罩、沒有暗帶、沒有額外光效
+- **穩定性**：dt 夾在 0–0.1 秒；|偏移| ≤ 0.45（超過時截斷並去掉往外的速度）、|速度| ≤ 0.6；NaN 會讓那顆粒子歸零重來（儲存的屬性壞了會永遠壞）。人物位置突變、快速進出時改變的是力，偏移與速度連續跟上，粒子不跳位；只有手動切換 Clear／Flow 會跳
+- **測試用開關**：NoticeSensor 的 `Flow Terms`（只在 Flow 開時有效）：Both／Avoid Only（只避讓＋回復）／Slide Only（只滑行＋回復）。`IdleMirror` 的 `Fixed Seed`（0 = 每次隨機）、`People` 物件上預設關閉的 `ScriptedPersonSource`（固定路徑：5 秒進場 → 站到 17 秒 → 3 秒橫移 → 站到 24 秒離開 → 看恢復）
+- **數值檢查**：[notice-flow-check.js](notice-flow-check.js) 是 `Notice_Flow.hlsl` 的 JS 副本，`node docs/notice-flow-check.js` 可重跑：線性部分在各 dt 的過衝 ≤ 6%；整個人物場在 144 / 60 / 30 / 10 Hz 與 5–100 ms 亂跳的 dt 下都沒有 NaN、偏移與速度不超上限、離開 14 秒後平均偏移 < 0.002、穩定後各幀率的平均偏移差 ≤ 11%；人物瞬移＋快速進出 10 次仍連續有界；站 60 秒沒有粒子卡在上限、身體內保留約 71% 的待機粒子；直直朝中間來的粒子在三種模式都會被偏轉。**這些只說明積分是穩的，不代表看起來像繞流**，繞流、壓縮、尾流要在 Game View 判斷（見「還沒驗證」）
+- 2D 預覽（模擬器）的觀察：第一版讓流向「整片決定往上或往下滑」，絲帶正面撞上身體的直面時會停住再垂直滑走，像撞牆後的硬拐角；改成只保留順流分量後彎曲變平順。只開避讓時主要是上游減速、擠壓；只開滑行時是順流向彎；兩個都開最像繞流
+
+## 第五輪（Clear，仍在，A/B 用）
 
 2026-11-04。第四輪的長方形被看成「debug 碰撞框、硬挖空」，第五輪把它改成**柔性的存在場**：核心、殼、尾流三層融在一起，看不出分界。只動 `Notice_Clear.hlsl` 的形狀與推擠、`NoticeState` 的尾流；脈衝、對焦、繞圈程式都還在，但驗證期關掉（Main 的 Parts 只勾 Clear、Orbit Share Stay / Long 設 0）。
 
@@ -60,9 +77,11 @@
 
 | 欄位 | 預設 | 作用 |
 |---|---|---|
-| Parts | Clear + Pulse | 複選：Clear 讓出空間、Pulse 脈衝、Focus 對焦。全不勾 = 原本的待機 |
-| Show Debug | 開 | 左上角文字與黃色十字 |
+| Parts | Flow（Main） | 複選：Clear 讓出空間、Pulse 脈衝、Focus 對焦、Flow 繞流（勾了 Flow 就只跑 Flow，其他三個不跑）。全不勾 = 原本的待機 |
+| Flow Terms | Both | **測試用**，只在 Flow 開時有效：Both／Avoid Only（只避讓）／Slide Only（只滑行）。回復一直都在 |
+| Show Debug | 開 | 左上角文字（含 aware）與黃色十字 |
 | Settings: Notice Delay | 0.5 | 進場到世界開始有反應（秒） |
+| Settings: Aware Rise | 1 | 察覺從 0 升到 1 的時間（秒），從 Notice Delay 之後開始；離開後在餘韻時間內退去 |
 | Settings: Hush Rise / Hold / Fall | 1.5 / 1.5 / 2.5 | 變慢的時間：緩降、維持、緩復（秒） |
 | Settings: Hush Slow | 0.25 | 最慢時的速度（1 = 正常，0.1 = 幾乎停住） |
 | Settings: Passing Max | 3 | 停留幾秒以下算路過 |
@@ -92,23 +111,31 @@
 | Pulse Sweep | 1.6 | 亮環掃進來要幾秒。小 = 快 |
 | Pulse Stop | 1.6 | 亮環停在邊緣外多遠（1 步 = 0.35 螢幕半高）。約 1.6 = 被擠開的粒子外緣 |
 
-沒有開到 Inspector 的（要改檔頭的 `#define`，改完 Unity 會自動重新編譯）：繞圈速度、繞圈離邊緣的距離範圍、中心飄移、膠囊圓度的呼吸、脈衝亮度／亮帶寬度／微顫、對焦的所有數字、遠景參與繞圈的比例；第五輪的 `Notice_Core_*`（核心緩坡的次方、遠景留的倍數與推的比例、留下粒子的變暗變小）、`Notice_Deflect_*`（遠景與每顆的滑動差、上下翻轉的高度、背風側的比例）、`Notice_Wake_*`（尾巴最長、暗帶的明暗與長度衰減）。
+Flow 只用 Width Stay、Height Stay、Edge Ragged、Width Wobble、Tilt（身體大小固定）；其他欄位是 Clear 的。
+
+**A/B 錄影用**：`Idle Reflect` 或 `Idle Fly` 物件上的 `IdleMirror` 的 `Fixed Seed`（填一個就好，0 = 每次隨機）；`People` 物件上的 `ScriptedPersonSource`（勾起來就照固定路徑走，此時不要用滑鼠點；位置、進場、橫移、離開的時間都可改）。
+
+沒有開到 Inspector 的（要改檔頭的 `#define`，改完 Unity 會自動重新編譯）：`Notice_Flow.hlsl` 的 `Notice_Flow_*`（避讓與滑行速度、影響範圍、順流分量的判斷寬度、後備、回復時間、上限、醒來的錯開、呼吸、遠景比例、每條光紗的強度與反應時間；改了要同步 `docs/notice-flow-check.js` 的 `K`）；繞圈速度、繞圈離邊緣的距離範圍、中心飄移、膠囊圓度的呼吸、脈衝亮度／亮帶寬度／微顫、對焦的所有數字、遠景參與繞圈的比例；第五輪的 `Notice_Core_*`（核心緩坡的次方、遠景留的倍數與推的比例、留下粒子的變暗變小）、`Notice_Deflect_*`（遠景與每顆的滑動差、上下翻轉的高度、背風側的比例）、`Notice_Wake_*`（尾巴最長、暗帶的明暗與長度衰減）。
 
 ## 怎麼接的
 
 ```text
 Viewer A/B/C、MousePersonSource -> PersonTracker -> NoticeSensor (Scripts/)
    NoticeState: 有沒有人、x、y、停多久 -> 世界時鐘、stay、longStay、viewerX、viewerY、quiet、最近兩段安靜窗口
-每幀寫進 Idle Veil、Idle Reflect（13 個 Notice 輸入，含 Wake X / Y；另有 18 個形狀欄位在 Veil 上調、倒影自動複製）與 Idle Fly（6 個）
+每幀寫進 Idle Veil、Idle Reflect（14 個 Notice 輸入，含 Wake X / Y、Aware；另有 18 個形狀欄位在 Veil 上調、倒影自動複製）與 Idle Fly（6 個）
+Idle Veil、Idle Reflect 另有一個 Delta Time (VFX) 節點接到 noticeDt，兩個自訂屬性 noticeOffset / noticeVelocity
 -> Idle_Veil.hlsl
-     Idle_NoticeBody -> Notice_Body (Notice/Notice_Clear.hlsl)：在「不得低於地平線」與倒影翻轉之前改世界裡的粒子，倒影自動跟著翻出來
+     IdleVeil / IdleVeilReflect：讀出偏移與速度 -> Idle_Core -> 寫回（用 VFX_USE_NOTICEOFFSET_CURRENT 包起來，因為 Idle_Fly 也編譯這個檔但沒有這兩個屬性）
+     Flow 開：Notice_Flow (Notice/Notice_Flow.hlsl)；否則偏移歸 0，Idle_NoticeBody -> Notice_Body (Notice/Notice_Clear.hlsl)
+     兩者都在「不得低於地平線」與倒影翻轉之前改世界裡的粒子，倒影自動跟著翻出來（倒影自己存一份偏移，輸入相同，算出來也相同）
      Idle_Cond / Idle_Fly：開始時間在安靜窗口內就不開始；交換的視覺效果乘上 (1 - quiet)
 ```
 
-- **Notice 物件的 Parts 可複選**：None＝與原本的待機逐像素相同（世界時鐘不接管）；Clear／Pulse／Focus 各一個位元（`Notice Mode` 輸入就是這個位元遮罩）。預設 Clear + Pulse
+- **Notice 物件的 Parts 可複選**：None＝與原本的待機逐像素相同（世界時鐘不接管）；Clear／Pulse／Focus／Flow 各一個位元（1 / 2 / 4 / 8，`Notice Mode` 輸入就是這個位元遮罩；Flow 開時 Flow Terms 再加 16 不避讓或 32 不滑行）。Main 現在是 Flow
 - 輸入：Play Main，**關掉 Choreography**，滑鼠左鍵點一下＝觀眾進場（畫面上有彩色方框），拖曳移動，右鍵移除。世界只跟第一個人。`NoticeSensor` 用相機把人的位置投影成螢幕 (x, y)；Game View 左上角的文字與黃色十字顯示世界認為觀眾在哪、現在是哪個階段（`Show Debug`）
 - 世界時鐘：Parts 不是 None 時，`IdleVeil`／`IdleVeilReflect`／`IdleFly` 把粒子的 `age` 改成 `Notice Clock`，屏息時整個世界一起變慢；安靜窗口也用這個時鐘
-- `NoticeState` 是純邏輯，有 EditMode 測試（`FlowMirror.Tests` 共 48 個，含顏色交換與尾流，全過）
+- `NoticeState` 是純邏輯，有 EditMode 測試（`FlowMirror.Tests` 共 50 個，含顏色交換、尾流與察覺，全過）
+- **Flow 的接線（第六輪加的）**：自訂屬性要先在 graph 的 `m_CustomAttributes` 宣告（每個一段 `VFXCustomAttributeDescriptor`），Custom HLSL 只看**入口函式本身**寫到的 `attributes.xxx` 決定要讀寫哪些屬性，所以讀寫寫在 `IdleVeil` / `IdleVeilReflect` 裡、`Idle_Core` 只拿參數。VFX 的 Init 會把每個要儲存的屬性設成預設值 0，Update 再從 buffer 讀回來，所以偏移在幀與幀之間保存。`notice-vfx-check.js` 多檢查三件事：兩個屬性有宣告成 Vector2、`_noticeDt` 接到 Delta Time (VFX)、沒有 HLSL 寫 `attributes.velocity`。改 `.vfx` 前的版本備份在 git（31c0b97）
 - 新增 VFX 輸入屬性用腳本複製 `Run Seed` 的接線，不手動拖線。**坑**：新節點若沒被加進 graph 的 children 清單，Unity 匯入時會判定「無效連結」，**自動重存檔並把連結清掉**；要先確認三份清單（graph children、block input slots、parameter info）都有，再匯入。匯入後用 `HasFloat` 確認屬性存在。**第二個坑（第五輪踩到，整個畫面的粒子都不見）**：`Idle_Veil.hlsl` 入口函式的簽名只要有語法錯誤（例如 `void` 和函式名黏在一起），Unity 匯入時就找不到那個函式，會悄悄把 Custom HLSL 區塊改指向 `IdleFly`、砍掉其他輸入槽並**存檔**；之後把 HLSL 修好也不會恢復，而 `HasFloat` 仍然是 true。每次匯入後跑 `node docs/notice-vfx-check.js`（檢查區塊呼叫的函式、輸入槽順序與簽名一致、每個槽都連到屬性），並看 `git diff --numstat` 的 `.vfx` 幾乎只有新增行。壞了就從上一個好的 commit 還原 `.vfx` 再重新接線
 
 ## 點子池（這次不做）
@@ -123,6 +150,16 @@ Viewer A/B/C、MousePersonSource -> PersonTracker -> NoticeSensor (Scripts/)
 
 ## 還沒驗證（要在 Unity Play 裡看）
 
+**Flow（第六輪）的視覺驗收**：用 Fixed Seed＋ScriptedPersonSource 錄同一段，Parts 切 Clear／Flow、Flow Terms 切三種各錄一次。有慣性不等於自然繞流，下面每一項都要在連續錄影裡看到，不能只靠數值檢查：
+
+- A（0–5 秒，沒有人）：與原本的待機一樣
+- B（進場後前 2 秒）：沒有突然變化；一部分光點先開始偏轉，其餘陸續跟上
+- C（約 5 秒）：粒子順著原本的流向沿人物邊緣滑過，上游略微擠壓，不是撞牆後的硬拐角
+- D（約 10 秒）：人物附近是柔和、不完整、隨時間變化的低密度區，**不是固定的人形空洞**；近景反應明顯、遠景較弱
+- E（橫移、離開後）：後方延遲回填；離開後粒子慢慢回到原本的流，不是瞬間恢復
+- 擠壓處有沒有過亮（只能調強度，不加遮罩）；三種 Flow Terms 是否讀得出差別
+
+**Clear（第五輪）**：
 - 膠囊夠不夠「不規則、會變」（下一輪要加強）、核心邊緣有沒有被看成輪廓、殼那圈讀不讀得出「被擠開、滑開」、會不會過曝；尺寸（1.2 / 1.5 倍）會不會太大；尾流的暗帶讀不讀得出「剛離開的地方還空著」
 - 繞圈粒子的疏密、數量、速度；被拉過來時路徑是直線，偶爾可能穿過空間
 - 脈衝是否停在被擠開的粒子外緣、夠不夠快
@@ -131,6 +168,8 @@ Viewer A/B/C、MousePersonSource -> PersonTracker -> NoticeSensor (Scripts/)
 
 ## 交接
 
-- 做到：第五輪的核心、殼、尾流接上，並依審查修掉核心台階、頂端接縫、尾流副本干涉；編譯、48 個測試（篩 `FlowMirror.Tests`）、VFX 匯入、4 個新屬性 `HasFloat` 都沒有錯誤；**畫面還沒有人看過第五輪**
+- 第六輪做到：Flow（察覺＋適應）接上；JS 模擬與數值檢查全過、編譯沒有錯誤、50 個測試（篩 `FlowMirror.Tests`）全過、`notice-vfx-check.js` 全過、`Notice Aware` 在兩個 VFX 的 `HasFloat` 為 true；**Game View 還沒有人看過 Flow**
+- 第六輪下一步：照上面的 A–E 錄 Clear 與 Flow 對照；不夠明顯先調 `Notice_Flow_SLIDE` / `AVOID`，像牆就降 `AVOID`、拉大 `REACH`。這輪不做好奇粒子、手勢、多人、額外光效
+- 第五輪做到：第五輪的核心、殼、尾流接上，並依審查修掉核心台階、頂端接縫、尾流副本干涉；編譯、48 個測試（篩 `FlowMirror.Tests`）、VFX 匯入、4 個新屬性 `HasFloat` 都沒有錯誤；**畫面還沒有人看過第五輪**
 - 下一步：Play Main（關掉 Game View 的 Gizmos，不然假人的方框線框會被當成效果的邊）看三件事：①站著不動時核心稀疏、看不出方框邊 ②殼的粒子是滑開不是撞牆 ③橫移後後方留尾巴、停下慢慢回填。再來做邊緣不規則與隨時間流動
 - 調的地方：Core Keep、Deflect、Wake Lag、Rim Softness 在 Inspector；其餘是 `Notice_Clear.hlsl` 檔頭的 `#define`（`Notice_Core_*`、`Notice_Deflect_*`、`Notice_Wake_*`）
