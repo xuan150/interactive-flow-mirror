@@ -76,6 +76,23 @@ static uint Idle_RS = 0u;      // per-run random: mixed into every event's seed,
 #define Idle_HL 2.0
 static const float3 Idle_FOG_COLOR = float3(0.04, 0.08, 0.25);
 
+// ---- Notice (docs/notice.md): how the world reacts once it has noticed a viewer. Mode 0 = the plain idle, untouched.
+// A bit mask: 1 clear, 2 pulse, 4 focus. The values come from NoticeSensor every frame.
+#include "Assets/_Project/Notice/Notice_Common.hlsl"
+static int Idle_NOTICE_MODE = 0;
+static IdleNotice Idle_NOTICE = (IdleNotice)0;
+// The quiet: while a viewer is there (and during the afterglow) no new condense or fly-by event starts; the ones already running
+// finish. Idle_QWIN holds the two latest windows of world clock (from, until, from, until): an event whose start falls in one
+// was skipped. Idle_QUIET (0 .. 1) calms the transfer, whose moves are permanent and so cannot be skipped.
+static float Idle_QUIET = 0.0;
+static float4 Idle_QWIN = float4(0.0, 0.0, 0.0, 0.0);
+
+/// Hidden
+bool Idle_Skipped(float start)
+{
+    return (start >= Idle_QWIN.x && start < Idle_QWIN.y) || (start >= Idle_QWIN.z && start < Idle_QWIN.w);
+}
+
 // Six ribbons in two roles (plus the foreground blobs, which are not ribbons):
 //   A (0-1)  background: loose dust over the far background (Idle_FAR_DUST), or two dim fine sheets. They never trade particles.
 //   B (2-5)  the story: four ribbons that trade particles. The one that takes them gets wider and brighter, the one that
@@ -506,7 +523,7 @@ IdleCd Idle_Cond(float age)
     c.rr = Idle_C0 + (uint)(Idle_Rand(c.cs, 2) * Idle_NC) % Idle_NC;
     c.uc = 0.5 + (Idle_Rand(c.cs, 3) - 0.5) * 0.4;
     c.span = 0.4 + 0.2 * Idle_Rand(c.cs, 4);
-    c.on = age >= c.sk;
+    c.on = age >= c.sk && !Idle_Skipped(c.sk);
     return c;
 }
 
@@ -542,8 +559,19 @@ IdleFl Idle_Fly(float age)
     float ck = floor(tc / Idle_FINT);
     c.cs = (uint)ck * 4421u + 977u + Idle_RS;
     c.sk = Idle_FSTART + ck * Idle_FINT + (Idle_FINT - Idle_FDUR - 6.0) * Idle_Rand(c.cs, 1);   // its tail ends inside its own slot
-    c.on = age >= c.sk;
+    c.on = age >= c.sk && !Idle_Skipped(c.sk);
     return c;
+}
+
+#include "Assets/_Project/Notice/Notice_Pulse.hlsl"
+#include "Assets/_Project/Notice/Notice_Focus.hlsl"
+#include "Assets/_Project/Notice/Notice_Clear.hlsl"
+
+/// Hidden
+void Idle_NoticeBody(inout float3 pos, inout float3 color, inout float alpha, inout float sizeMul,
+                     uint id, uint ribbon, float u, bool dust)
+{
+    Notice_Body(pos, color, alpha, sizeMul, id, ribbon, u, dust, Idle_NOTICE, Idle_NOTICE_MODE);
 }
 
 /// Hidden
@@ -616,6 +644,10 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
     wp = hop.wsPrev;
     bc = hop.brCur;
     bp = hop.brPrev;
+    wc = lerp(wc, 1.0, Idle_QUIET);
+    wp = lerp(wp, 1.0, Idle_QUIET);
+    bc = lerp(bc, 1.0, Idle_QUIET);
+    bp = lerp(bp, 1.0, Idle_QUIET);
     // A particle that has moved leans toward one side of its new strands and has drifted downstream.
     float v2 = v;
     IdleFx fxa = fx;
@@ -643,7 +675,7 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
         pos = lerp(b.pos, a.pos, away);
         pos.xy += side * (length(delta) * sin(3.14159 * away) * (hop.bow + 0.04 * (2.0 * Idle_Rand(id, 45) - 1.0)));
         hue = lerp(b.hue, a.hue, away);
-        moving = sin(3.14159 * away);
+        moving = sin(3.14159 * away) * (1.0 - Idle_QUIET);
         br = lerp(bp, bc, away);
     }
 
@@ -729,8 +761,8 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
     float hlS = 0.0;
     float hlD = 0.0;
 #if Idle_TRANSFER
-    hlS = hop.hlS;
-    hlD = hop.hlD;
+    hlS = hop.hlS * (1.0 - Idle_QUIET);
+    hlD = hop.hlD * (1.0 - Idle_QUIET);
 #endif
     // The dust that has landed in a condensing stretch glows, and so does the ribbon's own part of that stretch.
     hlD = max(hlD, cglow);
@@ -751,6 +783,10 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
     color *= 1.0 + 0.8 * shine;
     color = lerp(color, float3(0.75, 0.88, 1.0), 0.12 * hlS);
     color = lerp(color, float3(1.0, 0.82, 0.55), 0.12 * hlD);
+
+    // The world noticing a viewer: reshapes the particle in the world, so its reflection follows.
+    float sizeMul = 1.0;
+    Idle_NoticeBody(pos, color, alpha, sizeMul, id, rc, u, dust);
 
     // Never below the horizon: what would sink is eased onto the line and fades, so it piles up as a soft contact edge.
     float d = pos.z - Idle_CAM_Z;
@@ -775,7 +811,7 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror)
     attributes.position = pos;
     attributes.color = color * Idle_BRIGHT;
     attributes.alpha = alpha;
-    attributes.size = Idle_SIZE * lerp(Idle_NEAR_SIZE, Idle_FAR_SIZE, f) * smx * (1.0 + 0.25 * moving) * (1.0 + 0.5 * shine) * (0.7 + 0.6 * Idle_Rand(id, 7));
+    attributes.size = Idle_SIZE * lerp(Idle_NEAR_SIZE, Idle_FAR_SIZE, f) * smx * (1.0 + 0.25 * moving) * (1.0 + 0.5 * shine) * (0.7 + 0.6 * Idle_Rand(id, 7)) * sizeMul;
 }
 
 /// Hidden
@@ -844,11 +880,46 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus. 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
+/// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
+/// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
+/// noticeViewerX: Screen x of the viewer, -1 - 1, smoothed so it trails. Set by NoticeSensor.
+/// noticeViewerY: Screen y of the viewer, -1 - 1, smoothed the same way. Set by NoticeSensor.
+/// noticeQuiet: 0 - 1, how quiet the world is while a viewer is there. Calms the transfer. Set by NoticeSensor.
+/// noticeQuietFrom: Start (world clock) of the latest quiet window: events that would start inside it are skipped. Set by NoticeSensor.
+/// noticeQuietUntil: End of the latest quiet window (a huge number while it lasts). Set by NoticeSensor.
+/// noticeQuietFrom2: Start of the window before that. Set by NoticeSensor.
+/// noticeQuietUntil2: End of the window before that. Set by NoticeSensor.
+/// noticeWidthStay: Half the width of the space the world clears for a viewer after a stay (3 - 10 s), in screen half-heights. The viewer's box in the Game view is 0.18 wide.
+/// noticeWidthLong: Half the width after a long stay (over 10 s).
+/// noticeHeightStay: Half the height of the cleared space after a stay. The viewer's box is 0.63 tall.
+/// noticeHeightLong: Half the height after a long stay.
+/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Keep it between 0.1 and 0.65.
+/// noticeRimEven: How much of the pile-up's extra brightness is cancelled. 0 = a very bright rim, 1 = no glow at all.
+/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain rectangle, bigger = a more ragged, wavy edge.
+/// noticeWidthWobble: How much the width changes from the top of the space to the bottom (share of the width). 0 = straight sides.
+/// noticeTilt: How far the whole space sways to one side and the other, in radians. 0 = always upright.
+/// noticeOrbitStay: Share of the dots near the space that leave their ribbons and circle it, after a stay.
+/// noticeOrbitLong: The same after a long stay.
+/// noticeReachStay: How far from the edge (screen half-heights) a dot can be and still be drawn into orbit, after a stay.
+/// noticeReachLong: The same after a long stay.
+/// noticeInside: Share of the orbiting dots that are allowed to dip inside the space now and then. Keep it tiny (0.003) or the inside is not empty.
+/// noticePulseSweep: Seconds the bright ring takes to come in toward the viewer. Smaller = faster.
+/// noticePulseStop: Where the bright ring stops, in steps outside the rim (1 step = 0.35 screen half-heights). About 1.6 is the outer edge of the dots the viewer has pushed aside; bigger = it stops further away.
 void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
              in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
              in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
              in float receiverGlow, in float transferAmount, in float transferEvery, in float transferTime, in float depthPeriod,
-             in float widthFollow, in float runSeed)
+             in float widthFollow, in float runSeed,
+              in float noticeMode, in float noticeClock, in float noticeStay, in float noticeLong, in float noticeViewerX, in float noticeViewerY,
+              in float noticeQuiet, in float noticeQuietFrom, in float noticeQuietUntil, in float noticeQuietFrom2, in float noticeQuietUntil2,
+              in float noticeWidthStay, in float noticeWidthLong, in float noticeHeightStay,
+              in float noticeHeightLong, in float noticeRim, in float noticeRimEven,
+              in float noticeRagged, in float noticeWidthWobble, in float noticeTilt,
+              in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
+              in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
+              in float noticePulseStop)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -861,6 +932,31 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
     Idle_COLOR_SPREAD = colorSpread; Idle_COLOR_SHIFT = colorShift; Idle_GAP = forkGap; Idle_GATHER = gatherPull;
     Idle_EXTEND = extendLen; Idle_GLOW = receiverGlow;
     Idle_XAMT = transferAmount; Idle_XINT = transferEvery; Idle_XDUR = transferTime; Idle_ZPERIOD = depthPeriod; Idle_WFOLLOW = widthFollow; Idle_RS = (uint)runSeed * 2654435761u;
+    attributes.age = attributes.age;
+    Idle_NOTICE_MODE = (int)(noticeMode + 0.5);
+    if (Idle_NOTICE_MODE > 0) attributes.age = noticeClock;
+    Idle_NOTICE.stay = noticeStay; Idle_NOTICE.longStay = noticeLong; Idle_NOTICE.viewerX = noticeViewerX; Idle_NOTICE.viewerY = noticeViewerY; Idle_NOTICE.clock = attributes.age;
+    Idle_NOTICE.widthStay = noticeWidthStay;
+    Idle_NOTICE.widthLong = noticeWidthLong;
+    Idle_NOTICE.heightStay = noticeHeightStay;
+    Idle_NOTICE.heightLong = noticeHeightLong;
+    Idle_NOTICE.rim = noticeRim;
+    Idle_NOTICE.rimEven = noticeRimEven;
+    Idle_NOTICE.ragged = noticeRagged;
+    Idle_NOTICE.widthWobble = noticeWidthWobble;
+    Idle_NOTICE.tilt = noticeTilt;
+    Idle_NOTICE.orbitStay = noticeOrbitStay;
+    Idle_NOTICE.orbitLong = noticeOrbitLong;
+    Idle_NOTICE.reachStay = noticeReachStay;
+    Idle_NOTICE.reachLong = noticeReachLong;
+    Idle_NOTICE.inside = noticeInside;
+    Idle_NOTICE.pulseSweep = noticePulseSweep;
+    Idle_NOTICE.pulseStop = noticePulseStop;
+    if (Idle_NOTICE_MODE > 0)
+    {
+        Idle_QUIET = noticeQuiet;
+        Idle_QWIN = float4(noticeQuietFrom, noticeQuietUntil, noticeQuietFrom2, noticeQuietUntil2);
+    }
     Idle_Core(attributes, false);
 }
 
@@ -885,11 +981,46 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus. 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
+/// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
+/// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
+/// noticeViewerX: Screen x of the viewer, -1 - 1, smoothed so it trails. Set by NoticeSensor.
+/// noticeViewerY: Screen y of the viewer, -1 - 1, smoothed the same way. Set by NoticeSensor.
+/// noticeQuiet: 0 - 1, how quiet the world is while a viewer is there. Calms the transfer. Set by NoticeSensor.
+/// noticeQuietFrom: Start (world clock) of the latest quiet window: events that would start inside it are skipped. Set by NoticeSensor.
+/// noticeQuietUntil: End of the latest quiet window (a huge number while it lasts). Set by NoticeSensor.
+/// noticeQuietFrom2: Start of the window before that. Set by NoticeSensor.
+/// noticeQuietUntil2: End of the window before that. Set by NoticeSensor.
+/// noticeWidthStay: Half the width of the space the world clears for a viewer after a stay (3 - 10 s), in screen half-heights. The viewer's box in the Game view is 0.18 wide.
+/// noticeWidthLong: Half the width after a long stay (over 10 s).
+/// noticeHeightStay: Half the height of the cleared space after a stay. The viewer's box is 0.63 tall.
+/// noticeHeightLong: Half the height after a long stay.
+/// noticeRim: How soft the pile-up on the rim is. Smaller = a wider, softer, more gradual squeeze that bends the ribbons around the space from further away; bigger = a thin hard edge. Keep it between 0.1 and 0.65.
+/// noticeRimEven: How much of the pile-up's extra brightness is cancelled. 0 = a very bright rim, 1 = no glow at all.
+/// noticeRagged: How far the edge of the space is bent out of straight, in screen half-heights. 0 = a plain rectangle, bigger = a more ragged, wavy edge.
+/// noticeWidthWobble: How much the width changes from the top of the space to the bottom (share of the width). 0 = straight sides.
+/// noticeTilt: How far the whole space sways to one side and the other, in radians. 0 = always upright.
+/// noticeOrbitStay: Share of the dots near the space that leave their ribbons and circle it, after a stay.
+/// noticeOrbitLong: The same after a long stay.
+/// noticeReachStay: How far from the edge (screen half-heights) a dot can be and still be drawn into orbit, after a stay.
+/// noticeReachLong: The same after a long stay.
+/// noticeInside: Share of the orbiting dots that are allowed to dip inside the space now and then. Keep it tiny (0.003) or the inside is not empty.
+/// noticePulseSweep: Seconds the bright ring takes to come in toward the viewer. Smaller = faster.
+/// noticePulseStop: Where the bright ring stops, in steps outside the rim (1 step = 0.35 screen half-heights). About 1.6 is the outer edge of the dots the viewer has pushed aside; bigger = it stops further away.
 void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
                     in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
                     in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
                     in float receiverGlow, in float transferAmount, in float transferEvery, in float transferTime, in float depthPeriod,
-                    in float widthFollow, in float runSeed)
+                    in float widthFollow, in float runSeed,
+                     in float noticeMode, in float noticeClock, in float noticeStay, in float noticeLong, in float noticeViewerX, in float noticeViewerY,
+                     in float noticeQuiet, in float noticeQuietFrom, in float noticeQuietUntil, in float noticeQuietFrom2, in float noticeQuietUntil2,
+                     in float noticeWidthStay, in float noticeWidthLong, in float noticeHeightStay,
+                     in float noticeHeightLong, in float noticeRim, in float noticeRimEven,
+                     in float noticeRagged, in float noticeWidthWobble, in float noticeTilt,
+                     in float noticeOrbitStay, in float noticeOrbitLong, in float noticeReachStay,
+                     in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
+                     in float noticePulseStop)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -902,6 +1033,31 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
     Idle_COLOR_SPREAD = colorSpread; Idle_COLOR_SHIFT = colorShift; Idle_GAP = forkGap; Idle_GATHER = gatherPull;
     Idle_EXTEND = extendLen; Idle_GLOW = receiverGlow;
     Idle_XAMT = transferAmount; Idle_XINT = transferEvery; Idle_XDUR = transferTime; Idle_ZPERIOD = depthPeriod; Idle_WFOLLOW = widthFollow; Idle_RS = (uint)runSeed * 2654435761u;
+    attributes.age = attributes.age;
+    Idle_NOTICE_MODE = (int)(noticeMode + 0.5);
+    if (Idle_NOTICE_MODE > 0) attributes.age = noticeClock;
+    Idle_NOTICE.stay = noticeStay; Idle_NOTICE.longStay = noticeLong; Idle_NOTICE.viewerX = noticeViewerX; Idle_NOTICE.viewerY = noticeViewerY; Idle_NOTICE.clock = attributes.age;
+    Idle_NOTICE.widthStay = noticeWidthStay;
+    Idle_NOTICE.widthLong = noticeWidthLong;
+    Idle_NOTICE.heightStay = noticeHeightStay;
+    Idle_NOTICE.heightLong = noticeHeightLong;
+    Idle_NOTICE.rim = noticeRim;
+    Idle_NOTICE.rimEven = noticeRimEven;
+    Idle_NOTICE.ragged = noticeRagged;
+    Idle_NOTICE.widthWobble = noticeWidthWobble;
+    Idle_NOTICE.tilt = noticeTilt;
+    Idle_NOTICE.orbitStay = noticeOrbitStay;
+    Idle_NOTICE.orbitLong = noticeOrbitLong;
+    Idle_NOTICE.reachStay = noticeReachStay;
+    Idle_NOTICE.reachLong = noticeReachLong;
+    Idle_NOTICE.inside = noticeInside;
+    Idle_NOTICE.pulseSweep = noticePulseSweep;
+    Idle_NOTICE.pulseStop = noticePulseStop;
+    if (Idle_NOTICE_MODE > 0)
+    {
+        Idle_QUIET = noticeQuiet;
+        Idle_QWIN = float4(noticeQuietFrom, noticeQuietUntil, noticeQuietFrom2, noticeQuietUntil2);
+    }
     Idle_Core(attributes, true);
 }
 
@@ -926,11 +1082,19 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask. 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on. Set by NoticeSensor.
+/// noticeQuietFrom: Start (world clock) of the latest quiet window: a fly-by that would start inside it is skipped. Set by NoticeSensor.
+/// noticeQuietUntil: End of the latest quiet window (a huge number while it lasts). Set by NoticeSensor.
+/// noticeQuietFrom2: Start of the window before that. Set by NoticeSensor.
+/// noticeQuietUntil2: End of the window before that. Set by NoticeSensor.
 void IdleFly(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
             in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
             in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
             in float receiverGlow, in float transferAmount, in float transferEvery, in float transferTime, in float depthPeriod,
-            in float widthFollow, in float runSeed)
+            in float widthFollow, in float runSeed,
+            in float noticeMode, in float noticeClock, in float noticeQuietFrom, in float noticeQuietUntil,
+            in float noticeQuietFrom2, in float noticeQuietUntil2)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -940,5 +1104,11 @@ void IdleFly(inout VFXAttributes attributes, in float alpha, in float size, in f
     attributes.size = attributes.size;
     Idle_ALPHA = alpha; Idle_SIZE = size; Idle_BRIGHT = brightness; Idle_FOG = fog; Idle_FAR_ALPHA = farAlpha;
     Idle_RS = (uint)runSeed * 2654435761u;
+    attributes.age = attributes.age;
+    if ((int)(noticeMode + 0.5) > 0)
+    {
+        attributes.age = noticeClock;
+        Idle_QWIN = float4(noticeQuietFrom, noticeQuietUntil, noticeQuietFrom2, noticeQuietUntil2);
+    }
     Idle_FlyCore(attributes);
 }
