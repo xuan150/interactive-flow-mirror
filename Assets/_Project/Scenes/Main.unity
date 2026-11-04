@@ -324,6 +324,7 @@ GameObject:
   - component: {fileID: 676246323}
   - component: {fileID: 676246322}
   - component: {fileID: 676246321}
+  - component: {fileID: 676246324}
   m_Layer: 0
   m_Name: People
   m_TagString: Untagged
@@ -381,6 +382,25 @@ Transform:
   - {fileID: 189688758}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &676246324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676246320}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f74b2cafecd967a4b849376a0b68b1e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FlowMirror::FlowMirror.ScriptedPersonSource
+  cam: {fileID: 0}
+  first: {x: 0.425, y: 0.475}
+  second: {x: 0.56, y: 0.475}
+  enterAt: 5
+  walkAt: 17
+  walkTime: 3
+  leaveAt: 24
 --- !u!1 &787227082
 GameObject:
   m_ObjectHideFlags: 0
@@ -655,7 +675,8 @@ MonoBehaviour:
   - {fileID: 1543335433}
   - {fileID: 2063195743}
   cam: {fileID: 0}
-  parts: 1
+  parts: 8
+  flowTerms: 0
   showDebug: 1
   settings:
     noticeDelay: 0.5
@@ -672,6 +693,7 @@ MonoBehaviour:
     viewerLag: 0.6
     wakeLag: 2.5
     quietRise: 5
+    awareRise: 1
 --- !u!1 &961739749
 GameObject:
   m_ObjectHideFlags: 0
@@ -1186,6 +1208,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.Idle.IdleMirror
   world: {fileID: 791721004}
+  fixedSeed: 0
 --- !u!1 &1748459164
 GameObject:
   m_ObjectHideFlags: 0
@@ -1279,6 +1302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.Idle.IdleMirror
   world: {fileID: 791721004}
+  fixedSeed: 0
 --- !u!73398921 &2063195742
 VFXRenderer:
   serializedVersion: 1
