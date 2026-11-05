@@ -50,5 +50,10 @@ struct IdleNotice
 #define Notice_FLOW_NO_SLIDE 32
 // Test only: tint the dots by how far Flow has moved them, to see where it acts and that it acts at all.
 #define Notice_FLOW_SHOW_OFFSET 64
+// Test only (NoticeSensor's Idle Hold): HOLD_CLOCK puts the idle on the world clock even with no part on, so the plain idle runs the
+// same timeline as Clear and Flow (it does nothing else); HOLD_STREAM streams the dots along their ribbons on their own age while
+// NoticeSensor holds the clock, so the ribbons keep one shape but the dots keep moving.
+#define Notice_HOLD_CLOCK 128
+#define Notice_HOLD_STREAM 256
 
 #endif

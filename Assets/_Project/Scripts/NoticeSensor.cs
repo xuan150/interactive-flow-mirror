@@ -13,6 +13,11 @@ namespace FlowMirror
     // (Notice_FLOW_NO_AVOID 16, Notice_FLOW_NO_SLIDE 32, Notice_FLOW_SHOW_OFFSET 64), added to the mask only while Flow is on.
     public enum FlowTerms { Both = 0, AvoidOnly = 32, SlideOnly = 16, ShowOffset = 64 }
 
+    // Test only: hold the idle still, so the reaction to the viewer can be judged on its own and Idle, Clear and Flow line up frame by
+    // frame. Same Clock runs the plain idle on the world clock too (HLSL bit Notice_HOLD_CLOCK); Shape holds the clock, so the ribbons
+    // keep the shape they had when it was switched on, and the dots stream on their own age (Notice_HOLD_STREAM); All holds everything.
+    public enum IdleHold { Off, SameClock, Shape, All }
+
     // Notice layer glue: reads the viewers from the PersonTracker, runs NoticeState, and hands the result to the idle VFX
     // as exposed floats every frame. The VFX reads them as the world clock and the strength of each stage.
     public class NoticeSensor : MonoBehaviour
@@ -26,12 +31,17 @@ namespace FlowMirror
         [SerializeField] NoticeParts parts = NoticeParts.Clear | NoticeParts.Pulse;
         [Tooltip("Test only, with Flow on. Both = the real look; Avoid Only = the dots are only moved off the viewer's edge; Slide Only = only slid along it; Show Offset = Both, with the dots tinted red by how far they have been moved. The pull back home is always on.")]
         [SerializeField] FlowTerms flowTerms = FlowTerms.Both;
+        [Tooltip("Test only. Same Clock: the plain idle (Parts None) runs on the world clock too, hush included, so Idle, Clear and Flow line up frame by frame. Shape: the ribbons hold the shape they had when this was switched on, the dots keep streaming along them. All: the whole idle stands still, only the reaction to the viewer moves. Switch it before the viewer comes in: switching jumps the picture.")]
+        [SerializeField] IdleHold idleHold;
         [Tooltip("Draw where the world thinks the viewer is (a cross) and which stage it is in, on the Game view.")]
         [SerializeField] bool showDebug = true;
         [SerializeField] NoticeSettings settings = NoticeSettings.Default;
 
         NoticeState state;
         NoticeOutput last;
+        // The world clock at the moment Idle Hold went to Shape or All.
+        float heldClock;
+        bool held;
 
         void OnEnable()
         {
@@ -56,12 +66,17 @@ namespace FlowMirror
             }
             var o = last = state.Step(Time.deltaTime, present, x, y);
             var mode = (int)parts | ((parts & NoticeParts.Flow) != 0 ? (int)flowTerms : 0);
+            if (idleHold != IdleHold.Off) mode |= 128;
+            if (idleHold == IdleHold.Shape) mode |= 256;
+            var hold = idleHold >= IdleHold.Shape;
+            if (hold && !held) heldClock = o.clock;
+            held = hold;
 
             foreach (var vfx in targets)
             {
                 if (!vfx) continue;
                 Set(vfx, "Notice Mode", mode);
-                Set(vfx, "Notice Clock", o.clock);
+                Set(vfx, "Notice Clock", hold ? heldClock : o.clock);
                 Set(vfx, "Notice Stay", o.stay);
                 Set(vfx, "Notice Long Stay", o.longStay);
                 Set(vfx, "Notice Viewer X", o.viewerX);
@@ -104,7 +119,7 @@ namespace FlowMirror
                 GUI.color = old;
             }
             GUI.Label(new Rect(10f, 10f, 800f, 24f),
-                $"notice {parts}{((parts & NoticeParts.Flow) != 0 && flowTerms != FlowTerms.Both ? $" ({flowTerms})" : "")}   {(last.present ? "viewer in" : "no viewer")}   aware {last.aware:0.00}   hush {last.hush:0.00}   stay {last.stay:0.00}   long {last.longStay:0.00}   x {last.viewerX:0.00}  y {last.viewerY:0.00}");
+                $"notice {parts}{((parts & NoticeParts.Flow) != 0 && flowTerms != FlowTerms.Both ? $" ({flowTerms})" : "")}{(idleHold != IdleHold.Off ? $"   hold {idleHold}" : "")}   {(last.present ? "viewer in" : "no viewer")}   aware {last.aware:0.00}   hush {last.hush:0.00}   stay {last.stay:0.00}   long {last.longStay:0.00}   x {last.viewerX:0.00}  y {last.viewerY:0.00}");
         }
     }
 }

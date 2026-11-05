@@ -85,6 +85,8 @@ static IdleNotice Idle_NOTICE = (IdleNotice)0;
 // finish. Idle_QWIN holds the two latest windows of world clock (from, until, from, until): an event whose start falls in one
 // was skipped. Idle_QUIET (0 .. 1) calms the transfer, whose moves are permanent and so cannot be skipped.
 static float Idle_QUIET = 0.0;
+// The time the dots stream along their ribbons by: the world clock, or (Notice_HOLD_STREAM, test only) their own age.
+static float Idle_STREAM_AGE = 0.0;
 static float4 Idle_QWIN = float4(0.0, 0.0, 0.0, 0.0);
 
 /// Hidden
@@ -608,7 +610,7 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror, inout float2 noticeO
         if (pick < Idle_RW[r]) break;
         pick -= Idle_RW[r];
     }
-    float u = frac(Idle_Rand(id, 1) + attributes.age * Idle_FLOW * Idle_SP[r] * (0.5 + Idle_Rand(id, 2)));
+    float u = frac(Idle_Rand(id, 1) + Idle_STREAM_AGE * Idle_FLOW * Idle_SP[r] * (0.5 + Idle_Rand(id, 2)));
     float halo = Idle_HALO * pow(Idle_Rand(id, 9), 6.0);
     // Strands: 24 of them, but unevenly spaced, so they never line up into a regular hatching.
     float si = floor(Idle_Rand(id, 3) * 24.0);
@@ -891,7 +893,7 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
-/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and 32 are test switches). 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and up are test switches). 0 = none (the plain idle). Set by NoticeSensor.
 /// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
 /// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
 /// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
@@ -954,6 +956,7 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
     attributes.age = attributes.age;
     Idle_NOTICE_MODE = (int)(noticeMode + 0.5);
     if (Idle_NOTICE_MODE > 0) attributes.age = noticeClock;
+    Idle_STREAM_AGE = (Idle_NOTICE_MODE & Notice_HOLD_STREAM) != 0 ? age : attributes.age;
     Idle_NOTICE.stay = noticeStay; Idle_NOTICE.longStay = noticeLong; Idle_NOTICE.viewerX = noticeViewerX; Idle_NOTICE.viewerY = noticeViewerY; Idle_NOTICE.clock = attributes.age;
     Idle_NOTICE.widthStay = noticeWidthStay;
     Idle_NOTICE.widthLong = noticeWidthLong;
@@ -1014,7 +1017,7 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// depthPeriod: Seconds a ribbon takes to drift from near to far and back. Each ribbon keeps its own pace.
 /// widthFollow: How strongly a ribbon widens as particles join it and narrows as they leave. 0 = width never changes.
 /// runSeed: Random number chosen at every start; it changes which events happen in which order. 0 = the same order every time.
-/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and 32 are test switches). 0 = none (the plain idle). Set by NoticeSensor.
+/// noticeMode: Which parts of the reaction to a viewer are on, as a bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (instead of the other three; 16 and up are test switches). 0 = none (the plain idle). Set by NoticeSensor.
 /// noticeClock: The world's clock in seconds, used instead of the particle age while a mode is on; it runs slow during the hush. Set by NoticeSensor.
 /// noticeStay: 0 - 1, how far the world is into the stay stage. Set by NoticeSensor.
 /// noticeLong: 0 - 1, how far the world is into the long-stay stage. Set by NoticeSensor.
@@ -1077,6 +1080,7 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
     attributes.age = attributes.age;
     Idle_NOTICE_MODE = (int)(noticeMode + 0.5);
     if (Idle_NOTICE_MODE > 0) attributes.age = noticeClock;
+    Idle_STREAM_AGE = (Idle_NOTICE_MODE & Notice_HOLD_STREAM) != 0 ? age : attributes.age;
     Idle_NOTICE.stay = noticeStay; Idle_NOTICE.longStay = noticeLong; Idle_NOTICE.viewerX = noticeViewerX; Idle_NOTICE.viewerY = noticeViewerY; Idle_NOTICE.clock = attributes.age;
     Idle_NOTICE.widthStay = noticeWidthStay;
     Idle_NOTICE.widthLong = noticeWidthLong;
