@@ -17,6 +17,7 @@
 - **待機畫面**：07a、07b、07c 與 09 四個待機版本看完後選定 **09 光紗**（2026-11-02）
 - 用詞（觀眾、身影、光絲、亂絲、交會、大理石紋）見 [GLOSSARY](../GLOSSARY.md)
 - 視覺層與輸入來源的接縫：見 [ADR 0001](adr/0001-visuals-read-person-buffer-and-id-mask.md)
+- **另一個方向：無名之物**（2026-11-06 看樣定案）與上面的方向並存，最後比較再取捨，見下方「無名之物」一節與 [ADR 0002](adr/0002-nameless-world-reads-presences-only.md)
 
 ## 架構：單向資料流
 
@@ -40,6 +41,7 @@
 Assets/_Project/
   Scripts/  Shaders/  VFX/
   Idle/                               ← 待機光紗（VFX、HLSL、IdleMirror），場景物件在 Main
+  Nameless/                           ← 無名之物（compute、shader、C#），場景是 Scenes/Nameless.unity
   Scenes/Main.unity
   Scenes/Sketches/Sketch_0X_*/        ← 教學用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
 docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開始做那張時才寫）
@@ -110,6 +112,15 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 - Output 還掛著範本的 `DefaultDot` 貼圖（Stretch），不可控地調暗線
 - 兩個 Multiply 漸層讓平時的線只剩暗藍（約 0.27），呼吸峰值單通道衝到 4+；Additive＋Bloom（強度 4、門檻 0.8）→ 暗藍裡夾白斑
 - 真正的做法極限只有一條：每段 ≈ 7 px，推大時折出角；錨定的線推遠會互相超車（05 已撞過）
+
+## 無名之物（另一個方向）
+
+2026-11-06 從零開始的看樣，和上面的「身影＋光紗」方向**並存**，兩邊都做出來比較後再取捨（所以 [ADR 0002](adr/0002-nameless-world-reads-presences-only.md) 不取代 0001）。用詞見 [GLOSSARY](../GLOSSARY.md) 的「無名之物」一節。
+
+- **是什麼**：全部由粒子構成、自己不規則變化的世界。形體在生物與殼之間變換，人進來不畫出人形，只用視線推開形體、讓追隨粒子跟著人；背景是帶殘影的塵埃
+- **參考答案**：網頁原型 [docs/lookdev/nameless.html](lookdev/nameless.html)（用瀏覽器開；合體為預設，「顯示事件」看事件與形態，「滑鼠＝有人」模擬觀眾）。看樣過程與使用者的取捨記在這次對話的記憶裡，重點已寫進 ADR 0002
+- **Unity**：`Scenes/Nameless.unity`，程式在 `Assets/_Project/Nameless/`。一群約 20 萬顆的粒子用 compute shader 模擬、自訂 shader 畫成點；節奏由純 C# 的指揮（Conductor）決定，有 EditMode 測試
+- **還沒做**：多位觀眾（目前一位，滑鼠）；效能在使用者電腦上的實測
 
 ## 數學積木
 
