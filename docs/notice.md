@@ -27,7 +27,31 @@
 
 反應從 0 升到滿約 4 秒。順序是：**光紗變慢 → 讓出空間 → 流速恢復**。
 
-## 現在的設計（第六輪：繞流 Flow）
+## 現在的設計（第七輪：混合 Hybrid，實驗模式）
+
+2026-11-05。Clear 與 Flow 錄影比較後的診斷（[notice-diag/](notice-diag/) 的模擬，同一條腳本路徑）：Flow 不是力不夠、積分出錯或幾個力互相抵消，而是作用形狀不對。它的中間刻意不推，凍結時是一圈輪廓、不凍結時抹成約 60%；一半的位移沿著粒子自己的流向，看不出來；偏移被流動帶到人物下游。屏息結束後，待機的流動速度是偏移速度的 3 倍。所以改成**空間給 Clear、時間給 Flow**，Parts 同時勾 Clear 和 Flow（`Hybrid`）就是這個模式，Clear 與 Flow 原封不動，三種可以 A/B/C。
+
+- **一個偏移，不是兩個相加**：`最後位置 = 待機位置 + Clear 現在的推擠 + 延遲 e`。Clear 每幀從**待機位置**算推擠，所以光紗流過一個靜止的場時沒有延遲，低密度區固定在人身上。e 存在 Flow 原有的 `noticeOffset`／`noticeVelocity`（e 與它的速度），不新增屬性
+- **延遲只承接場的變化**：每幀 `e −= Clear 現在的推擠 − 上一幀的場在同一個待機位置的推擠`（兩次用同一個時鐘，邊緣的呼吸不延遲），粒子先留在原處，再用 Flow 的動態回到 0：`速度 += (−e / 彈簧 − 速度) × (1 − e^(−dt / 反應))`，彈簧 = 1.5 × 反應（阻尼約 0.6，停下時微微過衝）。反應時間 = `Hybrid Follow`（場開著）或 `Hybrid Afterglow`（場放開後）× 每條光紗的比例（Flow 的 0.6–1.4 秒除以 0.8：近景先動、遠景塵埃最慢）× 景深（最遠慢 1.5 倍）× 每顆 ±20%。人物場穩定後 e 回到 0
+- **上一幀的場由 C# 送**：`Notice Prev Viewer X / Y`、`Notice Prev Stay`、`Notice Prev Long Stay`。切進 Hybrid 的第一幀送空的場，空間經由延遲淡入，不會突然出現
+- **每顆粒子不一樣**：在停留的 ramp 裡不同時間加入（Flow 的錯開，最多晚 60%），接受推擠的比例在 75–100% 之間慢慢呼吸，所以低密度區不完整、會變。透明度、大小也照同一個比例取 Clear 的值。不用 Flow 的避讓與滑行
+- **離場**：人一離開，NoticeSensor 把送給 Hybrid 的停留歸 0，空間立刻放開，回填全靠粒子自己漂回（`Hybrid Afterglow`），不再是 Clear 的「空間收攏」。`Hybrid Keep Space` 打開時，空間先保留 `Hybrid Keep Time` 秒再放開（預設關閉）
+- **dt**：`Idle_Veil.vfx`、`Idle_Reflect.vfx` 的 Update Mode 從 Fixed Delta Time 改成 Delta Time，每幀剛好更新一次，dt 就是 C# 用的 `Time.deltaTime`（VFX Manager 上限 0.05 秒）。Fixed 時每次固定算 1/60 秒：低於 60 fps 狀態跑慢，高於 60 fps 會跳過影格，C# 送的「上一幀」就對不上。待機位置由世界時鐘決定，不受影響；Flow 也因此和幀率無關
+- **穩定性**：dt 夾在 0–0.1 秒；彈簧時間至少一個 dt（任何 dt 都不發散）；|e| ≤ 0.8；NaN 會讓那顆粒子歸零。從 Hybrid 切到 Flow 時 Clear 的推擠瞬間消失（會跳），沒人時再切
+- **時間的四個階段**（診斷時發現原型的延遲疊在 Viewer Lag 與 Clear 的餘韻上，移動後要 3–4 秒才穩定，所以分開）：
+
+| 階段 | 控制（Notice 物件的 Settings） | 預設 |
+|---|---|---|
+| 進場察覺 | Entry 的 Passing Max（停留幾秒後開始）、Ramp Time（多久長滿）；每顆粒子錯開加入 | 3 / 4 秒 |
+| 移動跟隨 | Following 的 Viewer Lag ＋ Hybrid Follow（只疊這一小段） | 0.6 ＋ 0.25 秒 |
+| 停下穩定 | Following 的 Wake Lag（尾流暗帶收回）；粒子本身約 0.5–1.5 秒落定 | 2.5 秒 |
+| 離場餘韻 | Leaving 的 Hybrid Afterglow；Hybrid Keep Space / Keep Time | 1 秒（約 4 秒回到 0.9）／關／2 秒 |
+
+- **數值檢查**：[notice-diag/hybrid-check.js](notice-diag/hybrid-check.js) 是 `Notice_Hybrid.hlsl` 加上 NoticeSensor 放開空間的 JS 副本，在待機的實際形狀上跑腳本路徑，`node docs/notice-diag/hybrid-check.js` 可重跑（約 20 秒）。目前：站定時人物位置的密度 0.46（Clear 0.40、原型 0.55）；走動時低密度區落後人物約 1.05 秒、保持深度跟著走；停下後約 0.5 秒落定；離開後立刻開始回填、約 4 秒回到 0.9；Keep Space 時先保留 2 秒。模擬不含尾流暗帶、交換、凝結、飛越。**站定時仍接近 Clear**：錄影若還像黑色剪影，先調低 `Notice_Hybrid_SHARE_MIN`
+- **測試用 Idle Hold**（NoticeSensor 的 Test 區）：Same Clock 讓純待機（Parts None）也跑世界時鐘，Idle／Clear／Flow／Hybrid 可以逐幀對齊；Shape 停住光紗形狀、光點照樣流；All 整個待機停住，只剩對人物的反應在動。Play 前設定，切換會跳
+- **Missing Script 警告**：每個 .vfx 都帶一個 HDRP 子輸出物件（`VFXHDRPSubOutput`），專案只裝 URP，所以 .vfx 被載入、匯入、存檔時都會出現。從 Sketch 01 就有，執行時沒有作用
+
+## 第六輪（Flow，仍在，A/B 用）
 
 2026-11-04。第五輪看起來仍像「一塊黑色區域把粒子擋住」，不是粒子繞著邊緣走。原因在架構：Clear 是**每幀從頭算的靜態變形**（粒子位置只由當下的人物場決定），粒子流進來時被立刻重新擺放，所以永遠是同一個洞；關掉 alpha（Rim Burn Guard 0、站著不動、沒有暗帶）洞也還在。第六輪改成**人物影響既有粒子的運動**，Clear 原封不動保留，Parts 二選一做 A/B。
 
@@ -74,24 +98,29 @@
 
 ## Inspector 可調欄位
 
-**Hierarchy 的 `Notice` 物件（NoticeSensor）**：Play 時可以直接改，立刻生效。
+**Hierarchy 的 `Notice` 物件（NoticeSensor）**：Play 時可以直接改，立刻生效。分 Scene（接線）、Reaction（Parts 與 Settings）、Test 三區；Settings 裡再依階段分 Entry、Hush and quiet、Following、Leaving。
 
 | 欄位 | 預設 | 作用 |
 |---|---|---|
-| Parts | Flow（Main） | 複選：Clear 讓出空間、Pulse 脈衝、Focus 對焦、Flow 繞流（勾了 Flow 就只跑 Flow，其他三個不跑）。全不勾 = 原本的待機 |
-| Flow Terms | Both | **測試用**，只在 Flow 開時有效：Both／Avoid Only（只避讓）／Slide Only（只滑行）／Show Offset（Both，加上被移動的粒子染紅，0.2 螢幕半高全紅）。回復一直都在 |
-| Show Debug | 開 | 左上角文字（含 aware）與黃色十字 |
-| Settings: Notice Delay | 0.5 | 進場到世界開始有反應（秒） |
-| Settings: Aware Rise | 1 | 察覺從 0 升到 1 的時間（秒），從 Notice Delay 之後開始；離開後在餘韻時間內退去 |
-| Settings: Hush Rise / Hold / Fall | 1.5 / 1.5 / 2.5 | 變慢的時間：緩降、維持、緩復（秒） |
-| Settings: Hush Slow | 0.25 | 最慢時的速度（1 = 正常，0.1 = 幾乎停住） |
-| Settings: Passing Max | 3 | 停留幾秒以下算路過 |
-| Settings: Long After | 10 | 停留幾秒以上算久留 |
-| Settings: Ramp Time | 4 | 反應升到滿要幾秒 |
-| Settings: Afterglow Per Dwell / Min / Max | 0.5 / 1 / 20 | 餘韻長度 = 停留秒數 × 前者，夾在後兩者之間 |
-| Settings: Viewer Lag | 0.6 | 世界認為的位置追上實際位置的時間常數（秒），故意落後 |
-| Settings: Wake Lag | 2.5 | 尾流的影子追上實際位置的時間常數（秒），比 Viewer Lag 慢；兩者之差就是尾巴 |
-| Settings: Quiet Rise | 5 | 交換的發光、變粗淡掉要幾秒 |
+| Parts | Flow（Main） | 複選：Clear 讓出空間、Pulse 脈衝、Focus 對焦、Flow 繞流（只勾 Flow 就只跑 Flow，其他三個不跑）。**Clear 與 Flow 都勾 = Hybrid**（選單裡也有 Hybrid 一項）。全不勾 = 原本的待機。換模式在沒人時換 |
+| Settings › Entry: Notice Delay | 0.5 | 進場到世界開始有反應（秒） |
+| Settings › Entry: Aware Rise | 1 | 察覺從 0 升到 1 的時間（秒），從 Notice Delay 之後開始；離開後在餘韻時間內退去 |
+| Settings › Entry: Passing Max | 3 | 停留幾秒以下算路過 |
+| Settings › Entry: Long After | 10 | 停留幾秒以上算久留 |
+| Settings › Entry: Ramp Time | 4 | 反應升到滿要幾秒 |
+| Settings › Hush and quiet: Hush Rise / Hold / Fall | 1.5 / 1.5 / 2.5 | 變慢的時間：緩降、維持、緩復（秒） |
+| Settings › Hush and quiet: Hush Slow | 0.25 | 最慢時的速度（1 = 正常，0.1 = 幾乎停住） |
+| Settings › Hush and quiet: Quiet Rise | 5 | 交換的發光、變粗淡掉要幾秒 |
+| Settings › Following: Viewer Lag | 0.6 | 世界認為的位置追上實際位置的時間常數（秒），故意落後 |
+| Settings › Following: Wake Lag | 2.5 | 尾流的影子追上實際位置的時間常數（秒），比 Viewer Lag 慢；兩者之差就是尾巴 |
+| Settings › Following: Hybrid Follow | 0.25 | Hybrid：近景粒子追上空間的反應時間（秒），疊在 Viewer Lag 上；遠景較慢 |
+| Settings › Leaving: Afterglow Per Dwell / Min / Max | 0.5 / 1 / 20 | 餘韻長度 = 停留秒數 × 前者，夾在後兩者之間（Hybrid 的空間不用它，見下面三欄） |
+| Settings › Leaving: Hybrid Keep Space | 關 | Hybrid：人離開後先保留空間 Keep Time 秒再放開；關 = 立刻放開 |
+| Settings › Leaving: Hybrid Keep Time | 2 | Hybrid：保留空間的秒數（Keep Space 開時） |
+| Settings › Leaving: Hybrid Afterglow | 1 | Hybrid：空間放開後近景粒子漂回的反應時間（秒），約 4 倍時間回到九成 |
+| Test: Flow Terms | Both | **測試用**，只在 Flow 開時有效（Hybrid 不算）：Both／Avoid Only（只避讓）／Slide Only（只滑行）／Show Offset（Both，加上被移動的粒子染紅，0.2 螢幕半高全紅）。回復一直都在 |
+| Test: Idle Hold | Off | **測試用**：Same Clock／Shape／All，見第七輪。Play 前設定 |
+| Test: Show Debug | 開 | 左上角文字（含 aware）與黃色十字 |
 
 **`Idle Veil` 物件的 Visual Effect（Properties）**：倒影（`Idle Reflect`）自動跟著，只要改 Veil。名稱都以 `Notice` 開頭。
 
@@ -123,16 +152,16 @@ Flow 只用 Width Stay、Height Stay、Edge Ragged、Width Wobble、Tilt（身�
 ```text
 Viewer A/B/C、MousePersonSource -> PersonTracker -> NoticeSensor (Scripts/)
    NoticeState: 有沒有人、x、y、停多久 -> 世界時鐘、stay、longStay、viewerX、viewerY、quiet、最近兩段安靜窗口
-每幀寫進 Idle Veil、Idle Reflect（14 個 Notice 輸入，含 Wake X / Y、Aware；另有 18 個形狀欄位在 Veil 上調、倒影自動複製）與 Idle Fly（6 個）
-Idle Veil、Idle Reflect 另有一個 Delta Time (VFX) 節點接到 noticeDt，兩個自訂屬性 noticeOffset / noticeVelocity
+每幀寫進 Idle Veil、Idle Reflect（20 個 Notice 輸入，含 Wake X / Y、Aware、上一幀的場 4 個、Hybrid Follow / Afterglow；另有 18 個形狀欄位在 Veil 上調、倒影自動複製）與 Idle Fly（6 個）
+Idle Veil、Idle Reflect 另有一個 Delta Time (VFX) 節點接到 noticeDt，兩個自訂屬性 noticeOffset / noticeVelocity；Update Mode 是 Delta Time
 -> Idle_Veil.hlsl
      IdleVeil / IdleVeilReflect：讀出偏移與速度 -> Idle_Core -> 寫回（用 VFX_USE_NOTICEOFFSET_CURRENT 包起來，因為 Idle_Fly 也編譯這個檔但沒有這兩個屬性）
-     Flow 開：Notice_Flow (Notice/Notice_Flow.hlsl)；否則偏移歸 0，Idle_NoticeBody -> Notice_Body (Notice/Notice_Clear.hlsl)
+     Clear 與 Flow 都開：Notice_Hybrid (Notice/Notice_Hybrid.hlsl，裡面呼叫兩次 Notice_Body)；只開 Flow：Notice_Flow (Notice/Notice_Flow.hlsl)；否則偏移歸 0，Idle_NoticeBody -> Notice_Body (Notice/Notice_Clear.hlsl)
      兩者都在「不得低於地平線」與倒影翻轉之前改世界裡的粒子，倒影自動跟著翻出來（倒影自己存一份偏移，輸入相同，算出來也相同）
      Idle_Cond / Idle_Fly：開始時間在安靜窗口內就不開始；交換的視覺效果乘上 (1 - quiet)
 ```
 
-- **Notice 物件的 Parts 可複選**：None＝與原本的待機逐像素相同（世界時鐘不接管）；Clear／Pulse／Focus／Flow 各一個位元（1 / 2 / 4 / 8，`Notice Mode` 輸入就是這個位元遮罩；Flow 開時 Flow Terms 再加 16 不避讓或 32 不滑行）。Main 現在是 Flow
+- **Notice 物件的 Parts 可複選**：None＝與原本的待機逐像素相同（世界時鐘不接管）；Clear／Pulse／Focus／Flow 各一個位元（1 / 2 / 4 / 8，`Notice Mode` 輸入就是這個位元遮罩；Flow 開時 Flow Terms 再加 16 不避讓或 32 不滑行；Clear＋Flow = 9 是 Hybrid；Idle Hold 再加 128 同一時鐘、256 光點照樣流）。Main 現在是 Flow
 - 輸入：Play Main，**關掉 Choreography**，滑鼠左鍵點一下＝觀眾進場（畫面上有彩色方框），拖曳移動，右鍵移除。世界只跟第一個人。`NoticeSensor` 用相機把人的位置投影成螢幕 (x, y)；Game View 左上角的文字與黃色十字顯示世界認為觀眾在哪、現在是哪個階段（`Show Debug`）
 - 世界時鐘：Parts 不是 None 時，`IdleVeil`／`IdleVeilReflect`／`IdleFly` 把粒子的 `age` 改成 `Notice Clock`，屏息時整個世界一起變慢；安靜窗口也用這個時鐘
 - `NoticeState` 是純邏輯，有 EditMode 測試（`FlowMirror.Tests` 共 50 個，含顏色交換、尾流與察覺，全過）
@@ -150,6 +179,14 @@ Idle Veil、Idle Reflect 另有一個 Delta Time (VFX) 節點接到 noticeDt，�
 - 屏息期間再次進場時，hush 可能從非 0 直接跳回 0（時鐘不會跳，只是速度變）
 
 ## 還沒驗證（要在 Unity Play 裡看）
+
+**Hybrid（第七輪）的視覺驗收**：Fixed Seed 1234＋ScriptedPersonSource、Idle Hold Off，Parts 分別 Clear／Flow／Hybrid 各錄 0–36 秒。不能只看密度數字，要看實際畫面：
+
+- 進場：局部粒子逐漸察覺，不是立刻挖空
+- 站定：是否仍是過於清楚的人形黑洞（黑色剪影）
+- 移動：反應是否在約 0.5–1.5 秒內跟上
+- 離開：是自然的餘韻（粒子自己漂回），不是倒帶。不夠時打開 Hybrid Keep Space 再比
+- 待機光紗原本的細膩、透明感與美術是否保留
 
 **Flow（第六輪）的視覺驗收**：用 Fixed Seed＋ScriptedPersonSource 錄同一段，Parts 切 Clear／Flow、Flow Terms 切三種各錄一次。有慣性不等於自然繞流，下面每一項都要在連續錄影裡看到，不能只靠數值檢查：
 
@@ -169,6 +206,8 @@ Idle Veil、Idle Reflect 另有一個 Delta Time (VFX) 節點接到 noticeDt，�
 
 ## 交接
 
+- 第七輪做到：Hybrid 接上（Clear 與 Flow 都勾）；6 個新輸入以腳本接線、Update Mode 改 Delta Time；`notice-vfx-check.js` 匯入前後都過、shader 編譯沒有錯誤（只有 Notice_Clear 原有的 pow 警告）、EditMode 50 個測試（篩 `FlowMirror.Tests`）全過、`hybrid-check.js` 全過；Play 裡逐格推進看過送進 Veil 的值（mode 9、上一幀的場落後一幀、人離開時停留歸 0、Keep Space 開時保留 2 秒），兩個 VFX 的粒子數不變。**Game View 還沒有人看過 Hybrid**
+- 第七輪下一步：照「還沒驗證」錄 Clear／Flow／Hybrid，看完再決定是否取代 Clear。Hybrid 站定像黑影 → 調低 `Notice_Hybrid_SHARE_MIN`；跟不上 → 調低 Hybrid Follow 或 Viewer Lag；離開不像餘韻 → 打開 Keep Space 或加長 Hybrid Afterglow。這輪不做好奇粒子、額外粒子、新的發光效果；「有人在時世界維持慢速」做成選項（預設關）留到 Hybrid 看過之後
 - 第六輪做到：Flow（察覺＋適應）接上；JS 模擬與數值檢查全過、編譯沒有錯誤、50 個測試（篩 `FlowMirror.Tests`）全過、`notice-vfx-check.js` 全過、`Notice Aware` 在兩個 VFX 的 `HasFloat` 為 true；**Game View 還沒有人看過 Flow**
 - 第六輪下一步：照上面的 A–E 錄 Clear 與 Flow 對照；不夠明顯先調 `Notice_Flow_SLIDE` / `AVOID`，像牆就降 `AVOID`、拉大 `REACH`。這輪不做好奇粒子、手勢、多人、額外光效
 - 第五輪做到：第五輪的核心、殼、尾流接上，並依審查修掉核心台階、頂端接縫、尾流副本干涉；編譯、48 個測試（篩 `FlowMirror.Tests`）、VFX 匯入、4 個新屬性 `HasFloat` 都沒有錯誤；**畫面還沒有人看過第五輪**
