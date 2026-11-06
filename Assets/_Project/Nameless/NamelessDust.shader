@@ -1,0 +1,83 @@
+// Background dust, seen through its own slowly orbiting camera (the prototype's 奇異吸子 camera): motes in front of
+// and behind its pivot slide opposite ways, which reads as deep space. Stateless motes in a deep box; out-of-focus
+// ones grow and dim. Ported from docs/lookdev/nameless.html (VS_DUST).
+//
+// The prototype faded a dust buffer by k each frame instead of clearing it, so motes streak. Here each mote is drawn
+// once per remembered frame (newest first) with that frame's camera and time, weighted by the fades since: the same
+// sum, without a buffer. _TrailFrames and _Motes must match NamelessWorld.TrailFrames and NamelessWorld.Motes.
+Shader "FlowMirror/Nameless Dust"
+{
+    SubShader
+    {
+        Tags { "RenderPipeline" = "UniversalPipeline" "Queue" = "Transparent" "RenderType" = "Transparent" }
+        Pass
+        {
+            Blend One One
+            ZWrite Off
+            ZTest Always
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+            #pragma target 4.5
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "NamelessCommon.hlsl"
+
+            #define _TrailFrames 64
+            #define _Motes 2500u
+
+            float4x4 _DustView[_TrailFrames]; // the dust camera's view matrix in each remembered frame
+            float4 _DustTW[_TrailFrames];     // x: that frame's time, y: how much of its light is left (0 = skip)
+            float4 _PalA0;
+            float _DustB, _FocusD, _FocalRatio; // _FocalRatio: the dust lens's focal length over this camera's
+
+            static const float2 Corners[6] = { float2(-1, -1), float2(1, -1), float2(1, 1), float2(-1, -1), float2(1, 1), float2(-1, 1) };
+
+            struct Varyings
+            {
+                float4 pos : SV_POSITION;
+                float2 corner : TEXCOORD0;
+                float3 col : TEXCOORD1;
+            };
+
+            Varyings Vert(uint vid : SV_VertexID)
+            {
+                uint q = vid / 6, mote = q % _Motes, s = q / _Motes;
+                float2 corner = Corners[vid % 6];
+                Varyings o;
+                o.corner = corner;
+                o.col = 0;
+                o.pos = float4(0, 0, 0, 1); // all six corners on one point: nothing drawn
+                if (_DustTW[s].y < 1e-3) return o;
+
+                float t = _DustTW[s].x;
+                float3 h = Hash3(mote * 11u + 17u);
+                float3 p = float3(h.x * 16 - 8, h.y * 8 - 4, -h.z * 12 + 2);
+                p += float3(sin(t * .07 + h.y * 20), sin(t * .05 + h.z * 17) * .6, cos(t * .06 + h.x * 13)) * .4;
+                p.y = Mod(p.y + t * .03 + 4, 8) - 4;
+                // through this camera's projection (so its flip and depth range apply), widened to the dust lens
+                float4 cp = mul(UNITY_MATRIX_P, mul(_DustView[s], float4(p, 1)));
+                cp.xy *= _FocalRatio;
+                float px = _ScreenParams.y * .5 * abs(UNITY_MATRIX_P._m11) * _FocalRatio;
+                float base = .011 * px / cp.w;
+                float sz = base + abs(cp.w - _FocusD) * .012 * px / cp.w;
+                float tw = .5 + .5 * sin(t * (.6 + h.x * 1.7) + h.z * 30);
+                float b = _DustB * (.35 + .6 * pow(Hash1(mote * 5u + 3u), 12)) * (.4 + .6 * tw);
+                float ps = clamp(sz, 1, 40);
+                o.pos = cp;
+                o.pos.xy += corner * ps / _ScreenParams.xy * cp.w;
+                o.col = lerp(float3(.75, .8, .85), _PalA0.rgb, .15) * b * clamp(base * base / (ps * ps), .03, 1) * _DustTW[s].y;
+                return o;
+            }
+
+            half4 Frag(Varyings i) : SV_Target
+            {
+                float r2 = dot(i.corner, i.corner);
+                clip(1 - r2);
+                return half4(i.col * exp(-r2 * 2.5), 1);
+            }
+            ENDHLSL
+        }
+    }
+}
