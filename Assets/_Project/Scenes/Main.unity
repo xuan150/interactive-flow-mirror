@@ -344,7 +344,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b5a5ef56f32566468c55b2fd17f2f6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.MousePersonSource
-  cam: {fileID: 0}
+  cam: {fileID: 961739752}
   pickRadius: 1.2
 --- !u!114 &676246322
 MonoBehaviour:
@@ -389,12 +389,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 676246320}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f74b2cafecd967a4b849376a0b68b1e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FlowMirror::FlowMirror.ScriptedPersonSource
-  cam: {fileID: 0}
+  cam: {fileID: 961739752}
   first: {x: 0.425, y: 0.475}
   second: {x: 0.56, y: 0.475}
   enterAt: 5
@@ -605,6 +605,18 @@ VisualEffect:
       - m_Value: 0
         m_Name: Notice Orbit Share Stay
         m_Overridden: 1
+      - m_Value: 0.45
+        m_Name: Notice Height Stay
+        m_Overridden: 1
+      - m_Value: 0.55
+        m_Name: Notice Height Long
+        m_Overridden: 1
+      - m_Value: 0.4
+        m_Name: Notice Width Stay
+        m_Overridden: 1
+      - m_Value: 0.5
+        m_Name: Notice Width Long
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -674,26 +686,31 @@ MonoBehaviour:
   - {fileID: 791721004}
   - {fileID: 1543335433}
   - {fileID: 2063195743}
-  cam: {fileID: 0}
-  parts: 8
-  flowTerms: 0
-  showDebug: 1
+  cam: {fileID: 961739752}
+  parts: 9
   settings:
     noticeDelay: 0.5
+    awareRise: 1
+    passingMax: 3
+    longAfter: 10
+    rampTime: 4
     hushRise: 1.5
     hushHold: 1.5
     hushFall: 2.5
     hushSlow: 0.25
-    passingMax: 3
-    longAfter: 10
-    rampTime: 4
+    quietRise: 5
+    viewerLag: 0.6
+    wakeLag: 2.5
+    hybridFollow: 0.25
     afterglowPerDwell: 0.5
     afterglowMin: 1
     afterglowMax: 20
-    viewerLag: 0.6
-    wakeLag: 2.5
-    quietRise: 5
-    awareRise: 1
+    hybridKeepSpace: 0
+    hybridKeepTime: 2
+    hybridAfterglow: 1
+  flowTerms: 0
+  idleHold: 0
+  showDebug: 1
 --- !u!1 &961739749
 GameObject:
   m_ObjectHideFlags: 0
@@ -1175,6 +1192,60 @@ VisualEffect:
       - m_Value: 0
         m_Name: Run Seed
         m_Overridden: 1
+      - m_Value: 0.05
+        m_Name: Notice Core Keep
+        m_Overridden: 1
+      - m_Value: 0.6
+        m_Name: Notice Deflect
+        m_Overridden: 1
+      - m_Value: 0.12
+        m_Name: Notice Edge Ragged
+        m_Overridden: 1
+      - m_Value: 0.55
+        m_Name: Notice Height Long
+        m_Overridden: 1
+      - m_Value: 0.45
+        m_Name: Notice Height Stay
+        m_Overridden: 1
+      - m_Value: 0.003
+        m_Name: Notice Orbit Inside
+        m_Overridden: 1
+      - m_Value: 0.65
+        m_Name: Notice Orbit Reach Long
+        m_Overridden: 1
+      - m_Value: 0.45
+        m_Name: Notice Orbit Reach Stay
+        m_Overridden: 1
+      - m_Value: 0
+        m_Name: Notice Orbit Share Long
+        m_Overridden: 1
+      - m_Value: 0
+        m_Name: Notice Orbit Share Stay
+        m_Overridden: 1
+      - m_Value: 1.6
+        m_Name: Notice Pulse Stop
+        m_Overridden: 1
+      - m_Value: 1.6
+        m_Name: Notice Pulse Sweep
+        m_Overridden: 1
+      - m_Value: 0.2
+        m_Name: Notice Rim Burn Guard
+        m_Overridden: 1
+      - m_Value: 0.25
+        m_Name: Notice Rim Softness
+        m_Overridden: 1
+      - m_Value: 0.1
+        m_Name: Notice Tilt
+        m_Overridden: 1
+      - m_Value: 0.5
+        m_Name: Notice Width Long
+        m_Overridden: 1
+      - m_Value: 0.4
+        m_Name: Notice Width Stay
+        m_Overridden: 1
+      - m_Value: 0.25
+        m_Name: Notice Width Wobble
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -1208,7 +1279,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowMirror.Idle.IdleMirror
   world: {fileID: 791721004}
-  fixedSeed: 0
+  fixedSeed: 1234
 --- !u!1 &1748459164
 GameObject:
   m_ObjectHideFlags: 0
