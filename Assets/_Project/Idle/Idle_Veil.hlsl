@@ -77,10 +77,12 @@ static uint Idle_RS = 0u;      // per-run random: mixed into every event's seed,
 static const float3 Idle_FOG_COLOR = float3(0.04, 0.08, 0.25);
 
 // ---- Notice (docs/notice.md): how the world reacts once it has noticed a viewer. Mode 0 = the plain idle, untouched.
-// A bit mask: 1 clear, 2 pulse, 4 focus. The values come from NoticeSensor every frame.
+// A bit mask: 1 clear, 2 pulse, 4 focus, 8 flow (1 + 8 = hybrid). The values come from NoticeSensor every frame.
 #include "Assets/_Project/Notice/Notice_Common.hlsl"
 static int Idle_NOTICE_MODE = 0;
 static IdleNotice Idle_NOTICE = (IdleNotice)0;
+// The field as NoticeSensor sent it last frame (Hybrid only: the dots take its change as a lag).
+static IdleNotice Idle_NOTICE_PREV = (IdleNotice)0;
 // The quiet: while a viewer is there (and during the afterglow) no new condense or fly-by event starts; the ones already running
 // finish. Idle_QWIN holds the two latest windows of world clock (from, until, from, until): an event whose start falls in one
 // was skipped. Idle_QUIET (0 .. 1) calms the transfer, whose moves are permanent and so cannot be skipped.
@@ -569,6 +571,7 @@ IdleFl Idle_Fly(float age)
 #include "Assets/_Project/Notice/Notice_Focus.hlsl"
 #include "Assets/_Project/Notice/Notice_Clear.hlsl"
 #include "Assets/_Project/Notice/Notice_Flow.hlsl"
+#include "Assets/_Project/Notice/Notice_Hybrid.hlsl"
 
 /// Hidden
 void Idle_NoticeBody(inout float3 pos, inout float3 color, inout float alpha, inout float sizeMul,
@@ -790,9 +793,12 @@ void Idle_Core(inout VFXAttributes attributes, bool mirror, inout float2 noticeO
     color = lerp(color, float3(1.0, 0.82, 0.55), 0.12 * hlD);
 
     // The world noticing a viewer: reshapes the particle in the world, so its reflection follows. Flow bends the dots around the
-    // viewer and remembers how far; the other parts are worked out fresh every frame, so the remembered offset is let go.
+    // viewer and remembers how far; Hybrid (Clear and Flow both on) remembers how far each dot lags behind Clear's space; the other
+    // parts are worked out fresh every frame, so the remembered offset is let go.
     float sizeMul = 1.0;
-    if ((Idle_NOTICE_MODE & Notice_PARTS_FLOW) != 0)
+    if ((Idle_NOTICE_MODE & Notice_PARTS_HYBRID) == Notice_PARTS_HYBRID)
+        Notice_Hybrid(pos, color, alpha, sizeMul, noticeOff, noticeVel, id, rc, u, dust, Idle_NOTICE, Idle_NOTICE_PREV, Idle_NOTICE_MODE, noticeDt);
+    else if ((Idle_NOTICE_MODE & Notice_PARTS_FLOW) != 0)
         Notice_Flow(pos, color, noticeOff, noticeVel, id, rc, u, dust, Idle_NOTICE, Idle_NOTICE_MODE, noticeDt);
     else
     {
@@ -926,6 +932,12 @@ void Idle_FlyCore(inout VFXAttributes attributes)
 /// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
 /// noticeAware: 0 - 1, how strongly the world feels the viewer: the strength of the flow around them (Flow only; their size stays). Set by NoticeSensor.
 /// noticeDt: Seconds since this effect's last update, from the Delta Time (VFX) node. Flow moves each dot's remembered offset by it.
+/// noticePrevViewerX: Screen x of the viewer as sent last frame (Hybrid: the dots take the change of the field as a lag). Set by NoticeSensor.
+/// noticePrevViewerY: Screen y of the viewer as sent last frame. Set by NoticeSensor.
+/// noticePrevStay: Stay as sent last frame. Set by NoticeSensor.
+/// noticePrevLong: Long stay as sent last frame. Set by NoticeSensor.
+/// noticeHybridFollow: Hybrid: seconds a near dot takes to catch up with the space while it is on; the far ones are slower. Set by NoticeSensor.
+/// noticeHybridAfterglow: Hybrid: seconds a near dot takes to drift home once the space is let go. Set by NoticeSensor.
 void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
              in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
              in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -940,7 +952,9 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
               in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
               in float noticePulseStop,
               in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect,
-              in float noticeAware, in float noticeDt)
+              in float noticeAware, in float noticeDt,
+              in float noticePrevViewerX, in float noticePrevViewerY, in float noticePrevStay, in float noticePrevLong,
+              in float noticeHybridFollow, in float noticeHybridAfterglow)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -976,6 +990,10 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
     Idle_NOTICE.pulseStop = noticePulseStop;
     Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
     Idle_NOTICE.aware = noticeAware;
+    Idle_NOTICE.hybridFollow = noticeHybridFollow; Idle_NOTICE.hybridAfterglow = noticeHybridAfterglow;
+    Idle_NOTICE_PREV = Idle_NOTICE;
+    Idle_NOTICE_PREV.viewerX = noticePrevViewerX; Idle_NOTICE_PREV.viewerY = noticePrevViewerY;
+    Idle_NOTICE_PREV.stay = noticePrevStay; Idle_NOTICE_PREV.longStay = noticePrevLong;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;
@@ -1050,6 +1068,12 @@ void IdleVeil(inout VFXAttributes attributes, in float alpha, in float size, in 
 /// noticeDeflect: How far the dots slide along the capsule instead of straight out, as a share of how far they are pushed out. 0 = straight out like a wall; 0.6 = about 30 degrees; above 1 = more sliding than pushing. Clamped to 0 - 1.5.
 /// noticeAware: 0 - 1, how strongly the world feels the viewer: the strength of the flow around them (Flow only; their size stays). Set by NoticeSensor.
 /// noticeDt: Seconds since this effect's last update, from the Delta Time (VFX) node. Flow moves each dot's remembered offset by it.
+/// noticePrevViewerX: Screen x of the viewer as sent last frame (Hybrid: the dots take the change of the field as a lag). Set by NoticeSensor.
+/// noticePrevViewerY: Screen y of the viewer as sent last frame. Set by NoticeSensor.
+/// noticePrevStay: Stay as sent last frame. Set by NoticeSensor.
+/// noticePrevLong: Long stay as sent last frame. Set by NoticeSensor.
+/// noticeHybridFollow: Hybrid: seconds a near dot takes to catch up with the space while it is on; the far ones are slower. Set by NoticeSensor.
+/// noticeHybridAfterglow: Hybrid: seconds a near dot takes to drift home once the space is let go. Set by NoticeSensor.
 void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float size, in float brightness, in float fog,
                     in float farAlpha, in float horizon, in float wave, in float refl, in float lineAlpha,
                     in float colorSpread, in float colorShift, in float forkGap, in float gatherPull, in float extendLen,
@@ -1064,7 +1088,9 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
                      in float noticeReachLong, in float noticeInside, in float noticePulseSweep,
                      in float noticePulseStop,
                      in float noticeWakeX, in float noticeWakeY, in float noticeCoreKeep, in float noticeDeflect,
-                     in float noticeAware, in float noticeDt)
+                     in float noticeAware, in float noticeDt,
+                     in float noticePrevViewerX, in float noticePrevViewerY, in float noticePrevStay, in float noticePrevLong,
+                     in float noticeHybridFollow, in float noticeHybridAfterglow)
 {
     uint id = attributes.particleId;
     float age = attributes.age;
@@ -1100,6 +1126,10 @@ void IdleVeilReflect(inout VFXAttributes attributes, in float alpha, in float si
     Idle_NOTICE.pulseStop = noticePulseStop;
     Idle_NOTICE.wakeX = noticeWakeX; Idle_NOTICE.wakeY = noticeWakeY; Idle_NOTICE.coreKeep = noticeCoreKeep; Idle_NOTICE.deflect = noticeDeflect;
     Idle_NOTICE.aware = noticeAware;
+    Idle_NOTICE.hybridFollow = noticeHybridFollow; Idle_NOTICE.hybridAfterglow = noticeHybridAfterglow;
+    Idle_NOTICE_PREV = Idle_NOTICE;
+    Idle_NOTICE_PREV.viewerX = noticePrevViewerX; Idle_NOTICE_PREV.viewerY = noticePrevViewerY;
+    Idle_NOTICE_PREV.stay = noticePrevStay; Idle_NOTICE_PREV.longStay = noticePrevLong;
     if (Idle_NOTICE_MODE > 0)
     {
         Idle_QUIET = noticeQuiet;

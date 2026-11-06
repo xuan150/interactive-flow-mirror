@@ -1,7 +1,7 @@
 // What the world knows about the viewer while it notices them (docs/notice.md). Included by Idle_Veil.hlsl after the Idle_*
 // macros and before Idle_Core, so Idle_CAM_Z, Idle_TANH, Idle_Rand and Idle_Line are all available here.
-// Everything here is a pure function of (particle, IdleNotice): no state, nothing remembered between frames. The one exception is
-// Flow (Notice_Flow.hlsl), which keeps an offset per dot in two stored attributes.
+// Everything here is a pure function of (particle, IdleNotice): no state, nothing remembered between frames. The exceptions are
+// Flow (Notice_Flow.hlsl) and Hybrid (Notice_Hybrid.hlsl), which keep an offset per dot in two stored attributes.
 
 #ifndef NOTICE_COMMON_INCLUDED
 #define NOTICE_COMMON_INCLUDED
@@ -37,6 +37,10 @@ struct IdleNotice
     float pulseStop;
     float coreKeep;
     float deflect;
+    // Hybrid only (NoticeSensor's Settings, seconds): how quickly each dot catches up with the space while it is on, and drifts home
+    // once it is let go.
+    float hybridFollow;
+    float hybridAfterglow;
 };
 
 // Which parts of the reaction are on (NoticeSensor sets the Notice Mode input to this bit mask).
@@ -45,6 +49,8 @@ struct IdleNotice
 #define Notice_PARTS_FOCUS 4
 // Flow: the dots bend around the viewer instead of clearing a space (Notice_Flow.hlsl). Runs instead of Clear, Pulse and Focus.
 #define Notice_PARTS_FLOW 8
+// Clear and Flow both on: Hybrid, Clear's space with Flow's timing (Notice_Hybrid.hlsl).
+#define Notice_PARTS_HYBRID (Notice_PARTS_CLEAR | Notice_PARTS_FLOW)
 // Test only: turn one of Flow's two pushes off, to judge the other alone (NoticeSensor's Flow Terms).
 #define Notice_FLOW_NO_AVOID 16
 #define Notice_FLOW_NO_SLIDE 32

@@ -1,13 +1,26 @@
 using System;
+using UnityEngine;
 
 namespace FlowMirror
 {
-    // Tunables for NoticeState, in seconds unless noted. Default is the first-guess timeline from docs/notice.md.
+    // Tunables of the notice timeline, in seconds unless noted, grouped by stage. NoticeState reads all but the Hybrid ones, which
+    // NoticeSensor hands to the veil. Default is the first-guess timeline from docs/notice.md.
     [Serializable]
     public struct NoticeSettings
     {
+        [Header("Entry")]
         /// Entry to the start of the hush; the world has not noticed yet.
         public float noticeDelay;
+        /// Awareness eases from 0 up to 1 over this long, once the notice delay is over; it drains over the afterglow.
+        public float awareRise;
+        /// Stay shorter than this is a pass-by: hush only.
+        public float passingMax;
+        /// Stay longer than this is a long stay.
+        public float longAfter;
+        /// Reaction from 0 to full while the viewer is there.
+        public float rampTime;
+
+        [Header("Hush and quiet")]
         /// Hush eases from 0 up to 1 over this long.
         public float hushRise;
         /// Hush stays at 1 for this long.
@@ -16,43 +29,51 @@ namespace FlowMirror
         public float hushFall;
         /// World clock speed at the hush peak (1 = normal, 0.1 = nearly stopped).
         public float hushSlow;
-        /// Stay shorter than this is a pass-by: hush only.
-        public float passingMax;
-        /// Stay longer than this is a long stay.
-        public float longAfter;
-        /// Reaction from 0 to full while the viewer is there.
-        public float rampTime;
-        /// Afterglow length = dwell seconds * this, clamped to [afterglowMin, afterglowMax].
-        public float afterglowPerDwell;
-        public float afterglowMin;
-        public float afterglowMax;
+        /// Quiet weight from 0 to 1 once someone is there.
+        public float quietRise;
+
+        [Header("Following")]
         /// Time constant of viewerX chasing the real position; deliberately late.
         public float viewerLag;
         /// Time constant of the wake: a second, slower shadow of the viewer. The stretch from the viewer back to it is the tail.
         /// Never quicker than viewerLag (a smaller value, or 0, behaves as viewerLag).
         public float wakeLag;
-        /// Quiet weight from 0 to 1 once someone is there.
-        public float quietRise;
-        /// Awareness eases from 0 up to 1 over this long, once the notice delay is over; it drains over the afterglow.
-        public float awareRise;
+        /// Hybrid: how long a near dot takes to catch up with the space while it is on, on top of viewerLag. Far layers are slower.
+        public float hybridFollow;
+
+        [Header("Leaving")]
+        /// Afterglow length = dwell seconds * this, clamped to [afterglowMin, afterglowMax].
+        public float afterglowPerDwell;
+        public float afterglowMin;
+        public float afterglowMax;
+        /// Hybrid: keep the space for hybridKeepTime after the viewer leaves, instead of letting it go at once.
+        public bool hybridKeepSpace;
+        /// Hybrid: seconds the space is kept once the viewer has left, while hybridKeepSpace is on.
+        public float hybridKeepTime;
+        /// Hybrid: how long a near dot takes to drift home once the space is let go.
+        public float hybridAfterglow;
 
         public static NoticeSettings Default => new()
         {
             noticeDelay = 0.5f,
+            awareRise = 1f,
+            passingMax = 3f,
+            longAfter = 10f,
+            rampTime = 4f,
             hushRise = 1.5f,
             hushHold = 1.5f,
             hushFall = 2.5f,
             hushSlow = 0.25f,
-            passingMax = 3f,
-            longAfter = 10f,
-            rampTime = 4f,
+            quietRise = 5f,
+            viewerLag = 0.6f,
+            wakeLag = 2.5f,
+            hybridFollow = 0.25f,
             afterglowPerDwell = 0.5f,
             afterglowMin = 1f,
             afterglowMax = 20f,
-            viewerLag = 0.6f,
-            wakeLag = 2.5f,
-            quietRise = 5f,
-            awareRise = 1f,
+            hybridKeepSpace = false,
+            hybridKeepTime = 2f,
+            hybridAfterglow = 1f,
         };
     }
 
