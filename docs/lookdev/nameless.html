@@ -1,0 +1,1202 @@
+<title>無名之物</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* Layout: a black 2:1 stage (the 4m x 2m wall) centred in the window; a quiet control strip floats over its lower edge. Single dark world by choice. */
+:root {
+  color-scheme: dark;
+  --void: #000;
+  --ink: #dbe3ea;
+  --ink-dim: #7f8b97;
+  --hair: rgba(219, 227, 234, .16);
+  --glass: rgba(5, 7, 10, .66);
+  --live: #bfe4ff;
+  --ui: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+html, body { height: 100%; background: var(--void); color: var(--ink); font-family: var(--ui); overflow: hidden; }
+#stage { position: fixed; inset: 0; display: grid; place-items: center; }
+canvas { display: block; background: var(--void); touch-action: none; }
+#bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 32px);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 16px;
+  padding: 7px 12px; font-size: 13px;
+  background: var(--glass); border: 1px solid var(--hair); border-radius: 10px;
+  opacity: .45; transition: opacity .3s;
+}
+#bar:hover, #bar:focus-within { opacity: 1; }
+.worlds { display: flex; gap: 4px; }
+.worlds button {
+  font: inherit; color: var(--ink-dim); background: transparent;
+  border: 1px solid transparent; border-radius: 6px; padding: 4px 10px; cursor: pointer;
+}
+.worlds button:hover { color: var(--ink); }
+.worlds button[aria-pressed="true"] { color: var(--ink); border-color: var(--hair); }
+label { display: flex; align-items: center; gap: 6px; color: var(--ink-dim); cursor: pointer; }
+label:hover { color: var(--ink); }
+input { accent-color: var(--live); margin: 0; }
+button:focus-visible, input:focus-visible { outline: 1px solid var(--live); outline-offset: 2px; }
+#status {
+  position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  font: 12px/1.7 var(--mono); color: var(--ink-dim); white-space: pre; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+#err {
+  position: fixed; inset: 16px; overflow: auto; margin: 0; padding: 16px;
+  font: 12px/1.5 var(--mono); color: #ffb9ad; white-space: pre-wrap;
+  background: rgba(0, 0, 0, .88); border: 1px solid #5c2b25; border-radius: 8px;
+}
+</style>
+
+<div id="stage"><canvas id="gl"></canvas></div>
+<div id="status" hidden></div>
+<nav id="bar" aria-label="小樣控制">
+  <div class="worlds">
+    <button id="w-mixed" type="button" data-world="mixed">合體</button>
+    <button id="w-creature" type="button" data-world="creature">1 無名生物</button>
+    <button id="w-shell" type="button" data-world="shell">4 有機殼</button>
+    <button id="w-attractor" type="button" data-world="attractor">2 奇異吸子</button>
+  </div>
+  <label for="presence"><input id="presence" type="checkbox">滑鼠＝有人</label>
+  <label for="showStatus"><input id="showStatus" type="checkbox">顯示事件</label>
+</nav>
+<pre id="err" hidden></pre>
+
+<script>
+'use strict';
+(() => {
+const errBox = document.getElementById('err');
+const showError = msg => { errBox.textContent = msg; errBox.hidden = false; };
+window.addEventListener('error', e => showError(String((e.error && e.error.stack) || e.message)));
+
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance' });
+if (!gl || !gl.getExtension('EXT_color_buffer_float')) {
+  showError('這個小樣需要支援 WebGL2 與浮點渲染的瀏覽器，請用桌機版 Chrome、Edge 或 Firefox 開啟。');
+  return;
+}
+
+// ---------------------------------------------------------------- math
+const TAU = Math.PI * 2;
+const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const randn = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * Math.random()); };
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOutBack = t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const len = a => Math.hypot(a[0], a[1], a[2]);
+const norm = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const randDir = () => { const z = rand(-1, 1), t = rand(0, TAU), r = Math.sqrt(1 - z * z); return [r * Math.cos(t), z, r * Math.sin(t)]; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = randi(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// mat3 column-major
+function axisAngle([x, y, z], ang) {
+  const c = Math.cos(ang), s = Math.sin(ang), t = 1 - c;
+  return [t*x*x + c, t*x*y + s*z, t*x*z - s*y, t*x*y - s*z, t*y*y + c, t*y*z + s*x, t*x*z + s*y, t*y*z - s*x, t*z*z + c];
+}
+function mat3mul(a, b) {
+  const o = new Array(9);
+  for (let c = 0; c < 3; c++) for (let r = 0; r < 3; r++) o[c*3 + r] = a[r] * b[c*3] + a[3 + r] * b[c*3 + 1] + a[6 + r] * b[c*3 + 2];
+  return o;
+}
+function orthonormal(m) {
+  const c0 = norm(m.slice(0, 3)), c1r = m.slice(3, 6);
+  const c1 = norm(sub(c1r, mul(c0, dot(c0, c1r)))), c2 = cross(c0, c1);
+  return [...c0, ...c1, ...c2];
+}
+// mat4 column-major
+function perspective(fovy, aspect, n, f) {
+  const t = 1 / Math.tan(fovy / 2), nf = 1 / (n - f);
+  return [t / aspect, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) * nf, -1, 0, 0, 2 * f * n * nf, 0];
+}
+function lookAt(e, c, up) {
+  const z = norm(sub(e, c)), x = norm(cross(up, z)), y = cross(z, x);
+  return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1];
+}
+function mat4mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k*4 + r] * b[c*4 + k]; o[c*4 + r] = s; }
+  return o;
+}
+function hsv(h, s, v) {
+  h = (((h % 360) + 360) % 360) / 60;
+  const c = v * s, x = c * (1 - Math.abs(h % 2 - 1)), m = v - c;
+  const [r, g, b] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
+  return [r + m, g + m, b + m].map(u => Math.pow(u, 2.2));
+}
+
+// ---------------------------------------------------------------- GLSL
+const HEAD = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D;
+`;
+const COMMON = `
+uint hash_u(uint x){ x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
+float hash1(uint x){ return float(hash_u(x)) / 4294967295.0; }
+vec3 hash3(uint x){ return vec3(hash1(x), hash1(x ^ 0x9E3779B9u), hash1(x ^ 0x85EBCA6Bu)); }
+vec4 permute(vec4 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
+vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314*r; }
+float snoise(vec3 v){
+  const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+  vec3 i = floor(v + dot(v, C.yyy));
+  vec3 x0 = v - i + dot(i, C.xxx);
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min(g.xyz, l.zxy);
+  vec3 i2 = max(g.xyz, l.zxy);
+  vec3 x1 = x0 - i1 + C.xxx;
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
+  i = mod(i, 289.0);
+  vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  float n_ = 1.0/7.0;
+  vec3 ns = n_*D.wyz - D.xzx;
+  vec4 j = p - 49.0*floor(p*ns.z*ns.z);
+  vec4 x_ = floor(j*ns.z);
+  vec4 y_ = floor(j - 7.0*x_);
+  vec4 x = x_*ns.x + ns.yyyy;
+  vec4 y = y_*ns.x + ns.yyyy;
+  vec4 h = 1.0 - abs(x) - abs(y);
+  vec4 b0 = vec4(x.xy, y.xy);
+  vec4 b1 = vec4(x.zw, y.zw);
+  vec4 s0 = floor(b0)*2.0 + 1.0;
+  vec4 s1 = floor(b1)*2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+  vec3 p0 = vec3(a0.xy, h.x), p1 = vec3(a0.zw, h.y), p2 = vec3(a1.xy, h.z), p3 = vec3(a1.zw, h.w);
+  vec4 nm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+  p0 *= nm.x; p1 *= nm.y; p2 *= nm.z; p3 *= nm.w;
+  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+  m = m*m;
+  return 42.0*dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+}
+vec3 nvec(vec3 p){ return vec3(snoise(p), snoise(p + vec3(19.1, 7.3, -11.7)), snoise(p + vec3(-5.9, 23.3, 13.1))); }
+vec3 curl(vec3 p){
+  const float e = .1;
+  vec3 x0 = nvec(p - vec3(e,0,0)), x1 = nvec(p + vec3(e,0,0));
+  vec3 y0 = nvec(p - vec3(0,e,0)), y1 = nvec(p + vec3(0,e,0));
+  vec3 z0 = nvec(p - vec3(0,0,e)), z1 = nvec(p + vec3(0,0,e));
+  return vec3((y1.z - y0.z) - (z1.y - z0.y), (z1.x - z0.x) - (x1.z - x0.z), (x1.y - x0.y) - (y1.x - y0.x)) / (2.*e);
+}
+// Smoke: a two-octave domain warp; continuous, so a surface tears into sheets and filaments instead of dust.
+vec3 smokeWarp(vec3 p, float t, float amt, float spread){
+  if(amt < .002) return p;
+  vec3 q = p*(1.1 - .45*spread) + vec3(0., t*.13, t*.05);
+  vec3 w = nvec(q);
+  vec3 w2 = nvec(q*2.3 + w*1.4*amt + vec3(t*.21));
+  return p + (w*(.95 + spread) + w2*.42)*amt;
+}
+float segD2(vec3 p, vec3 a, vec3 b){
+  vec3 pa = p - a, ba = b - a;
+  float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0., 1.);
+  vec3 d = pa - ba*h; return dot(d, d);
+}
+`;
+
+const VS_FULL = HEAD + `
+out vec2 vUv;
+void main(){ vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vUv = p; gl_Position = vec4(p*2. - 1., 0., 1.); }`;
+
+const FS_POINT = HEAD + `
+in vec3 vCol; out vec4 o;
+void main(){ vec2 d = gl_PointCoord*2. - 1.; float r2 = dot(d, d); if(r2 > 1.) discard; o = vec4(vCol*exp(-r2*2.5), 1.); }`;
+
+const FS_FADE = HEAD + `out vec4 o; void main(){ o = vec4(0.); }`;
+const FS_COPY = HEAD + `uniform sampler2D uSrc; in vec2 vUv; out vec4 o; void main(){ o = texture(uSrc, vUv); }`;
+
+const FS_DOWN = HEAD + `
+uniform sampler2D uSrc; uniform vec2 uTexel; uniform float uPrefilter, uThreshold;
+in vec2 vUv; out vec4 o;
+vec3 S(vec2 off){ return texture(uSrc, vUv + off*uTexel).rgb; }
+void main(){
+  vec3 c = S(vec2(0))*.125
+    + (S(vec2(-2,2)) + S(vec2(2,2)) + S(vec2(-2,-2)) + S(vec2(2,-2)))*.03125
+    + (S(vec2(0,2)) + S(vec2(-2,0)) + S(vec2(2,0)) + S(vec2(0,-2)))*.0625
+    + (S(vec2(-1,1)) + S(vec2(1,1)) + S(vec2(-1,-1)) + S(vec2(1,-1)))*.125;
+  if(uPrefilter > .5){
+    float br = max(c.r, max(c.g, c.b)), knee = uThreshold*.5;
+    float soft = clamp(br - uThreshold + knee, 0., 2.*knee); soft = soft*soft/(4.*knee + 1e-5);
+    c *= max(soft, br - uThreshold) / max(br, 1e-5);
+  }
+  o = vec4(c, 1.);
+}`;
+
+const FS_UP = HEAD + `
+uniform sampler2D uSrc; uniform vec2 uTexel;
+in vec2 vUv; out vec4 o;
+void main(){
+  vec2 t = uTexel;
+  vec3 c = texture(uSrc, vUv + vec2(-t.x, t.y)).rgb + texture(uSrc, vUv + vec2(0, t.y)).rgb*2. + texture(uSrc, vUv + t).rgb
+    + texture(uSrc, vUv + vec2(-t.x, 0)).rgb*2. + texture(uSrc, vUv).rgb*4. + texture(uSrc, vUv + vec2(t.x, 0)).rgb*2.
+    + texture(uSrc, vUv - t).rgb + texture(uSrc, vUv + vec2(0, -t.y)).rgb*2. + texture(uSrc, vUv + vec2(t.x, -t.y)).rgb;
+  o = vec4(c/16., 1.);
+}`;
+
+const FS_COMP = HEAD + COMMON + `
+uniform sampler2D uScene, uBloom; uniform float uBloomK, uExposure;
+in vec2 vUv; out vec4 o;
+vec3 aces(vec3 x){ return clamp((x*(2.51*x + .03))/(x*(2.43*x + .59) + .14), 0., 1.); }
+void main(){
+  vec3 c = texture(uScene, vUv).rgb + texture(uBloom, vUv).rgb*uBloomK;
+  vec2 q = (vUv - .5)*vec2(2., 1.);
+  c *= 1. - .32*dot(q, q);
+  c = pow(aces(c*uExposure), vec3(1./2.2));
+  c += (hash1(uint(gl_FragCoord.x)*1973u + uint(gl_FragCoord.y)*9277u) - .5)/255.;
+  o = vec4(c, 1.);
+}`;
+
+// Background dust: stateless motes across a deep box, out-of-focus ones grow and dim.
+const VS_DUST = HEAD + COMMON + `
+uniform mat4 uVP; uniform float uPx, uTime, uDustB, uFocusD; uniform vec3 uPalA0;
+out vec3 vCol;
+void main(){
+  uint id = uint(gl_VertexID);
+  vec3 h = hash3(id*11u + 17u);
+  vec3 p = vec3(h.x*16. - 8., h.y*8. - 4., -h.z*12. + 2.);
+  float t = uTime;
+  p += vec3(sin(t*.07 + h.y*20.), sin(t*.05 + h.z*17.)*.6, cos(t*.06 + h.x*13.))*.4;
+  p.y = mod(p.y + t*.03 + 4., 8.) - 4.;
+  vec4 cp = uVP*vec4(p, 1.);
+  gl_Position = cp;
+  float base = .011*uPx/cp.w;
+  float sz = base + abs(cp.w - uFocusD)*.012*uPx/cp.w;
+  float tw = .5 + .5*sin(t*(.6 + h.x*1.7) + h.z*30.);
+  float b = uDustB*(.35 + .6*pow(hash1(id*5u + 3u), 12.))*(.4 + .6*tw);
+  float ps = clamp(sz, 1., 40.);
+  gl_PointSize = ps;
+  vCol = mix(vec3(.75, .8, .85), uPalA0, .15)*b*clamp(base*base/(ps*ps), .03, 1.);
+}`;
+
+// ---- 無名生物 and 有機殼: one set of stateful particles with inertia, pulled each frame onto a target surface: the
+// creature's metaball field, the shell's deformed sphere, or a blend of the two while one kind turns into the other.
+const FS_LIFE_SIM = HEAD + COMMON + `
+uniform sampler2D uPos, uVel;
+uniform float uDt, uTime, uInit;
+uniform vec4 uBA[8], uBB[8], uTA0[4], uTA1[4], uTB0[4], uTB1[4];
+uniform vec4 uLA[5], uLB[5], uFA[2], uFB[2], uSA[3], uSB[3];
+uniform vec3 uCenter; uniform mat3 uRot; uniform float uScale;
+uniform float uM, uChaos, uTension, uCollapse, uBurst, uSweep, uSpread, uDwell, uPeel, uShellA, uShellB;
+uniform vec3 uSweepAxis, uPresO, uPresD, uPeelAxis;
+uniform vec4 uPres;
+layout(location = 0) out vec4 oPos;
+layout(location = 1) out vec4 oVel;
+
+vec4 gB[8]; vec4 gT0[4]; vec4 gT1[4];
+vec3 gPO, gPD; float gDent;
+
+float fieldLog(vec3 q){
+  float f = 0.;
+  for(int i = 0; i < 8; i++){ float r = gB[i].w; if(r <= 0.) continue; vec3 d = q - gB[i].xyz; f += r*r/(dot(d, d) + 1e-4); }
+  for(int i = 0; i < 4; i++){ float r = gT0[i].w; if(r <= 0.) continue; float k = r*r/(segD2(q, gT0[i].xyz, gT1[i].xyz) + 1e-4); f += k*k; }
+  // someone in front parts the body: the field thins around their line of sight, so the surface opens around them
+  if(gDent > 0.){ vec3 e = q - gPO; e -= gPD*dot(e, gPD); f *= 1. - gDent*exp(-dot(e, e)/.16); }
+  // wobble only near the surface; far out it would carve false bumps that trap particles in clumps
+  float lf = log(max(f, 1e-4));
+  return lf + .3*snoise(q*1.4 + vec3(0., uTime*.16, uTime*.1))*smoothstep(-3., -.5, lf);
+}
+
+// Shell radius along direction d. Lobes swing and swell slowly, so a held shell keeps breathing; glow is how much the
+// spot lights up (fold crests, lobe tips).
+float shellR(vec3 d, vec4 L[5], vec4 Fo[2], vec4 S[3], out float glow){
+  float r = 1., ridge = 0., tip = 0.;
+  for(int i = 0; i < 5; i++){
+    float k = length(L[i].xyz); if(k < 1e-3) continue;
+    float fi = float(i);
+    vec3 ax = normalize(L[i].xyz/k + .3*vec3(sin(uTime*.11 + fi*1.7), sin(uTime*.13 + fi*2.9), cos(uTime*.09 + fi*.7)));
+    float l = pow(max(dot(d, ax), 0.), k);
+    r += L[i].w*(1. + .35*sin(uTime*(.19 + .04*fi) + fi*2.3))*l; tip = max(tip, l*step(0., L[i].w));
+  }
+  for(int i = 0; i < 2; i++){
+    if(Fo[i].w <= 0.) continue;
+    float s = sin(dot(d, Fo[i].xyz)*3.14159 + uTime*.35 + float(i)*1.7);
+    r += Fo[i].w*s; ridge = max(ridge, pow(s*.5 + .5, 10.));
+  }
+  r += S[2].y*snoise(d*S[2].z + vec3(uTime*.06, uTime*.045, -uTime*.05));
+  r *= mix(1., S[2].x, smoothstep(S[1].w, S[1].w + .3, dot(d, S[1].xyz)));
+  glow = ridge*2.2 + tip*1.6;
+  return r;
+}
+vec3 twist(vec3 p, float a){ float c = cos(a*p.y), s = sin(a*p.y); p.xz = mat2(c, -s, s, c)*p.xz; return p; }
+// A particle's home on the shell, from its own direction d. Ridge particles slide onto the nearest crest of a fold, so
+// crests read as glowing lines drifting over the surface. lay: (thickness layer, radius factor).
+vec3 shellTarget(vec3 d, vec4 L[5], vec4 Fo[2], vec4 S[3], int snap, vec2 lay, out float glow){
+  float tw = S[0].w + .4*sin(uTime*.15 + 1.1);
+  if(snap >= 0){
+    int fi = (snap == 1 && Fo[1].w > 0.) ? 1 : 0;
+    float qn = length(Fo[fi].xyz);
+    if(qn > 1e-3){
+      vec3 a = Fo[fi].xyz/qn;
+      float ph = uTime*.35 + float(fi)*1.7;
+      float k = floor((dot(d, a)*qn*3.14159 + ph - 1.5708)/6.28318 + .5);
+      float c = (1.5708 + k*6.28318 - ph)/(qn*3.14159);
+      vec3 t = d - a*dot(d, a);
+      float tl = length(t);
+      if(abs(c) < .98 && tl > 1e-4) d = a*c + t/tl*sqrt(1. - c*c);
+    }
+  }
+  float r = shellR(d, L, Fo, S, glow)*(1. + lay.x*S[2].w)*lay.y;
+  return twist(d*r, tw)*S[0].xyz;
+}
+
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  uint id = uint(ij.y*textureSize(uPos, 0).x + ij.x);
+  if(uInit > .5){
+    vec3 h = hash3(id*3u + 1u);
+    float z = h.x*2. - 1., a = h.y*6.2831853, r = sqrt(1. - z*z);
+    oPos = vec4(uCenter + vec3(r*cos(a), z, r*sin(a))*pow(h.z, .33)*2.2, hash1(id*7u + 11u));
+    oVel = vec4(0.);
+    return;
+  }
+  vec4 P = texelFetch(uPos, ij, 0), V = texelFetch(uVel, ij, 0);
+  float role = P.w;
+  mat3 iR = transpose(uRot);
+  vec3 loc = iR*(P.xyz - uCenter)/uScale;
+  float mi = uM, front = 0.;
+  if(uSweep > -5.){ float x = uSweep - (dot(loc, uSweepAxis)*.5 + .5); mi = smoothstep(-.12, .12, x); front = exp(-x*x/.008); }
+  float sw = mix(uShellA, uShellB, mi); // how much of a shell this spot is; 0 = creature
+  // the person's line of sight, in body space
+  gDent = .93*uPres.w; gPO = iR*(uPresO - uCenter)/uScale; gPD = iR*uPresD;
+  vec3 stepC = vec3(0.), nC = vec3(0.), stepS = vec3(0.), nS = vec3(0.);
+  if(sw < .999){
+    // radii blend through r^2 so the total mass holds steady mid-morph instead of shrinking to a dot
+    for(int i = 0; i < 8; i++) gB[i] = vec4(mix(uBA[i].xyz, uBB[i].xyz, mi), sqrt(mix(uBA[i].w*uBA[i].w, uBB[i].w*uBB[i].w, mi)));
+    for(int i = 0; i < 4; i++){
+      gT0[i] = vec4(mix(uTA0[i].xyz, uTB0[i].xyz, mi), sqrt(mix(uTA0[i].w*uTA0[i].w, uTB0[i].w*uTB0[i].w, mi)));
+      vec4 e = mix(uTA1[i], uTB1[i], mi);
+      float fi = float(i);
+      gT1[i] = vec4(e.xyz + e.w*.28*vec3(sin(uTime*1.3 + fi*2.1), sin(uTime*1.07 + fi*3.7), cos(uTime*.83 + fi*1.3)), 0.);
+    }
+    float iso = role < .1 ? 1.1 : (role > .99 ? -.45 : 0.);
+    const float h = .012;
+    const vec2 k = vec2(1., -1.);
+    float f0 = fieldLog(loc);
+    vec3 gr = (k.xyy*fieldLog(loc + k.xyy*h) + k.yyx*fieldLog(loc + k.yyx*h) + k.yxy*fieldLog(loc + k.yxy*h) + k.xxx*fieldLog(loc + k.xxx*h))/(4.*h);
+    float g2 = dot(gr, gr) + 1e-4;
+    stepC = -(f0 - iso)*gr/g2; nC = gr*inversesqrt(g2);
+  }
+  float glow = 0.;
+  if(sw > .001){
+    // Each particle keeps a fixed home direction, so the skin stays evenly spread and its outline crisp (the hard shell);
+    // left free to flow like the creature's, it wrinkled into folds. Sparks circle the body instead of sitting still.
+    vec3 hd = hash3(id*7u + 1u);
+    float z = hd.x*2. - 1., a = hd.y*6.2831853 + (role > .99 ? uTime*(.3 + .5*hd.z) : 0.), rr = sqrt(1. - z*z);
+    vec3 d = vec3(rr*cos(a), z, rr*sin(a));
+    int snap = role > .7 && role < .82 ? 0 : (role >= .82 && role < .88 ? 1 : -1);
+    // the creature's layers: a bright core inside, sparks outside
+    vec2 lay = vec2(snap >= 0 ? 0. : hash1(id*17u + 2u)*2. - 1., role < .1 ? .62 : (role > .99 ? 1.25 : 1.));
+    float ga, gb;
+    vec3 t = mix(shellTarget(d, uLA, uFA, uSA, snap, lay, ga), shellTarget(d, uLB, uFB, uSB, snap, lay, gb), mi);
+    glow = mix(ga, gb, mi)*sw;
+    // someone in front parts the shell as they part the creature: skin near their line of sight moves off it
+    vec3 e = t - gPO; e -= gPD*dot(e, gPD);
+    t += normalize(e + vec3(1e-4))*.55*uPres.w*exp(-dot(e, e)/.16);
+    stepS = t - loc; nS = normalize(loc + vec3(1e-4));
+  }
+  vec3 stepL = mix(stepC, stepS, sw);
+  float sl = length(stepL); if(sl > 1.2) stepL *= 1.2/sl;
+  vec3 nW = uRot*normalize(mix(nC, nS, sw) + vec3(1e-5));
+  // 剝落 (shells): a patch of skin lets go, lifts off as smoke and flows back
+  float pm = uPeel*sw*smoothstep(.45, .8, dot(normalize(loc + vec3(1e-4)), uPeelAxis));
+
+  // a weak tether survives the smoke so the cloud billows around the body instead of leaving the frame
+  float hold = (1. - .93*uChaos)*(1. - .85*pm), col = max(uCollapse, 0.);
+  vec3 acc = uRot*stepL*uScale*42.*hold*(1. - min(col, 1.));
+  vec3 c = curl(P.xyz*.85 + vec3(0., uTime*.11, uTime*.05));
+  acc += (c - nW*dot(c, nW))*(.22 + (role > .99 ? 1.2 : 0.) + front*2.5)*hold;
+  acc += (c*2.6 + nW*1.2)*pm;
+  if(uChaos > .001) acc += (curl(P.xyz*(.6 - .2*uSpread) + vec3(uTime*.19, -uTime*.07, 0.))*(2.4 + 1.6*uSpread) + vec3(0., .25 + .25*uSpread, 0.))*uChaos;
+  // the creature shivers through its particles; on the shell this shredded the skin, so the shell trembles in drawing only
+  if(uTension > .001) acc += nvec(P.xyz*5. + vec3(uTime*13.))*26.*uTension*(1. - sw);
+  vec3 toC = uCenter - P.xyz;
+  acc += toC*30.*col + cross(uRot[1], toC)*7.*col;
+  // After a collapse every particle sits on one point. A shared outward push (or the body's own pull, from inside)
+  // keeps them clumped into knots and lines for the whole next hold, so each bursts its own way, past the surface,
+  // and the new body gathers them back in from outside.
+  acc += (normalize(normalize(-toC + vec3(1e-4)) + (hash3(id*11u + 3u) - .5)*2.)*42. + c*8.)*uBurst;
+  float damp = mix(mix(6.5, 1.8, uChaos) + 2.*col, 1.8, pm);
+  // A loose band leaves the body and streams after the person; the longer they stay, the more of it follows.
+  if(role > .94 && role < .99 && uPres.w > .01){
+    float band = (role - .94)/.05, chase = uPres.w*smoothstep(band, band + .15, uDwell);
+    vec3 toP = uPres.xyz + (hash3(id*5u + 9u) - .5)*.3 - P.xyz;
+    acc = mix(acc, toP*9. + curl(P.xyz*1.2 + vec3(0., uTime*.23, uTime*.11))*.6 + cross(uPresD, toP)*2.5, chase);
+    damp = mix(damp, 2.4, chase);
+  }
+  V.xyz = V.xyz*exp(-damp*uDt) + acc*uDt;
+  P.xyz += V.xyz*uDt;
+  V.w = glow + pm*1.5; // extra light for the drawing pass
+  if(any(isnan(P.xyz)) || any(isinf(P.xyz)) || any(isnan(V))){ P.xyz = uCenter + hash3(id + uint(uTime*97.)) - .5; V = vec4(0.); }
+  oPos = P; oVel = V;
+}`;
+
+const VS_LIFE = HEAD + COMMON + `
+uniform sampler2D uPos, uVel;
+uniform mat4 uVP; uniform mat3 uRot;
+uniform vec3 uCenter, uSweepAxis, uPalA0, uPalA1, uPalB0, uPalB1;
+uniform vec4 uPulse;
+uniform float uPx, uBase, uFlash, uDim, uTension, uM, uSweep, uScale, uPulseAmp, uTime, uShellA, uShellB;
+out vec3 vCol;
+void main(){
+  int W = textureSize(uPos, 0).x;
+  ivec2 ij = ivec2(gl_VertexID % W, gl_VertexID / W);
+  vec4 P = texelFetch(uPos, ij, 0), V = texelFetch(uVel, ij, 0);
+  float role = P.w;
+  vec3 loc = transpose(uRot)*(P.xyz - uCenter)/uScale, dl = normalize(loc + 1e-4);
+  float mi = uM, front = 0.;
+  if(uSweep > -5.){ float x = uSweep - (dot(loc, uSweepAxis)*.5 + .5); mi = smoothstep(-.12, .12, x); front = exp(-x*x/.008); }
+  float sw = mix(uShellA, uShellB, mi);
+  float spd = length(V.xyz);
+  float pw = uPulseAmp*exp(-pow((dot(dl, uPulse.xyz)*.5 + .5 - uPulse.w)*mix(8., 9., sw), 2.));
+  // On the shell the band lights the skin only. Lighting the inner core and the circling sparks too gave three offset,
+  // moving bands that read as the swept patch shaking, not as one sweep of light.
+  if(role < .1 || role > .99) pw *= 1. - sw;
+  // 有機殼's quiet details go straight onto the skin, where inertia cannot smooth them away: a fast radial tremble
+  // while it holds its breath, and the travelling band of light lifting the skin a little as it passes.
+  vec3 w = P.xyz + uRot*dl*(sw*uScale*(snoise(dl*9. + vec3(uTime*11.))*.05*uTension + pw*.05));
+  bool spark = role > .99;
+  // V.w: the shell's crests and lobe tips (and a peeling patch) light up and lean toward the highlight colour
+  vec3 col = mix(mix(uPalA0, uPalB0, mi), mix(uPalA1, uPalB1, mi), clamp(spd*.35 + (spark ? .7 : 0.) + (role < .1 ? .5 : 0.) + V.w*.3, 0., 1.));
+  // the shell's band is much stronger: it is the focal point of a quiet shell (~40% over the skin; v2 had ~20%)
+  float b = uBase*(1. + spd*.25 + front*3. + pw*mix(2.5, 12., sw) + uFlash*2.2 + uTension*mix(.6, .8, sw) + V.w)*(1. - uDim);
+  if(spark) b *= 3.;
+  if(role < .1) b *= 1.4;
+  vec4 cp = uVP*vec4(w, 1.);
+  gl_Position = cp;
+  float sz = (spark ? .02 : .0085)*uPx/cp.w;
+  gl_PointSize = clamp(sz, 1., 20.);
+  vCol = col*b*min(1., sz*sz);
+}`;
+
+// ---- World 2: strange attractors. Particles integrate the ODE; the scene buffer is never cleared, only faded, so orbits leave light trails.
+const ODE = `
+vec3 F(int f, vec3 p, vec4 a, vec4 b){
+  float x = p.x, y = p.y, z = p.z;
+  if(f == 0) return vec3((z - a.y)*x - a.w*y, a.w*x + (z - a.y)*y, a.z + a.x*z - z*z*z/3. - (x*x + y*y)*(1. + b.x*z) + b.y*z*x*x*x);
+  if(f == 1) return vec3(sin(y) - a.x*x, sin(z) - a.x*y, sin(x) - a.x*z);
+  if(f == 2) return vec3(-a.x*x - 4.*y - 4.*z - y*y, -a.x*y - 4.*z - 4.*x - z*z, -a.x*z - 4.*x - 4.*y - x*x);
+  if(f == 3) return vec3(y - a.x*x + a.y*y*z, a.z*y - x*z + z, a.w*x*y - b.x*z);
+  if(f == 4) return vec3(a.x*x - y*z, a.y*y + x*z, a.z*z + x*y/3.);
+  if(f == 5) return vec3(-y - z, x + a.x*y, a.y + z*(x - a.z));
+  if(f == 6) return vec3(a.x*(y - x), x*(a.y - z) - y, x*y - a.z*z);
+  return vec3(a.x*x + y*z, a.y*x + a.z*y - x*z, -z - x*y);
+}`;
+
+const FS_ATT_SIM = HEAD + COMMON + ODE + `
+uniform sampler2D uPos, uVel, uSampA, uSampB;
+uniform int uFamA, uFamB, uSteps;
+uniform vec4 uPA0, uPA1, uPB0, uPB1, uNA, uNB, uPres;
+uniform float uDtA, uDtB, uGen, uM, uSweep, uTime, uDt, uInit, uScale, uCollapse, uDwell;
+uniform vec3 uSweepAxis, uCenter, uPresO, uPresD;
+uniform mat3 uRot;
+layout(location = 0) out vec4 oPos;
+layout(location = 1) out vec4 oVel;
+// same RK4 the CPU used to vet the parameters, so the GPU stays on the same attractor
+vec3 rk4(int f, vec3 p, vec4 a, vec4 b, float h){
+  vec3 k1 = F(f, p, a, b), k2 = F(f, p + k1*(h*.5), a, b), k3 = F(f, p + k2*(h*.5), a, b), k4 = F(f, p + k3*h, a, b);
+  return p + (k1 + 2.*k2 + 2.*k3 + k4)*(h/6.);
+}
+vec4 samp(sampler2D s, uint seed){
+  uint k = hash_u(seed); ivec2 sz = textureSize(s, 0);
+  return texelFetch(s, ivec2(int(k % uint(sz.x)), int((k/uint(sz.x)) % uint(sz.y))), 0);
+}
+void main(){
+  ivec2 ij = ivec2(gl_FragCoord.xy);
+  uint id = uint(ij.y*textureSize(uPos, 0).x + ij.x);
+  uint seed = id*747796405u + uint(uTime*240.)*2891336453u;
+  if(uInit > .5){ oPos = vec4(samp(uSampA, id*2654435761u + 7u).xyz, hash1(id*7u + 3u)); oVel = vec4(0., 0., 0., uGen); return; }
+  // V.xyz is a display-space offset that decays: it carries flights between orbits and the bend around a person.
+  vec4 P = texelFetch(uPos, ij, 0), V = texelFetch(uVel, ij, 0);
+  bool inB = V.w > uGen + .5;
+  bool want;
+  if(uSweep > -5.){ vec4 n = inB ? uNB : uNA; want = uSweep > dot((P.xyz - n.xyz)*n.w, uSweepAxis)*.5 + .5; }
+  else want = uM > P.w;
+  if(want && !inB){
+    // hop onto the new orbit but keep the displayed spot, so the particle flies across as the offset decays
+    vec3 from = (P.xyz - uNA.xyz)*uNA.w;
+    P.xyz = samp(uSampB, seed).xyz;
+    V.xyz += uRot*(from - (P.xyz - uNB.xyz)*uNB.w)*uScale*(1. - uCollapse);
+    V.w = uGen + 1.; inB = true;
+  }
+  int f = inB ? uFamB : uFamA;
+  vec4 a0 = inB ? uPB0 : uPA0, a1 = inB ? uPB1 : uPA1, n = inB ? uNB : uNA;
+  float h = inB ? uDtB : uDtA;
+  for(int i = 0; i < 8; i++){ if(i >= uSteps) break; P.xyz = rk4(f, P.xyz, a0, a1, h); }
+  vec3 l = (P.xyz - n.xyz)*n.w;
+  if(any(isnan(P.xyz)) || any(isinf(P.xyz)) || dot(l, l) > 9. || hash1(seed ^ 0x5bd1e995u) < .002){
+    P.xyz = (inB ? samp(uSampB, seed + 11u) : samp(uSampA, seed + 11u)).xyz;
+    l = (P.xyz - n.xyz)*n.w;
+  }
+  vec3 w = uCenter + uRot*(l*uScale) + V.xyz;
+  float keep = 1.;
+  if(uPres.w > .01){
+    // the threads part and swirl around the person's line of sight; a loose band streams after them
+    vec3 e = w - uPresO; e -= uPresD*dot(e, uPresD);
+    vec3 en = normalize(e + vec3(1e-4));
+    float role = hash1(id*13u + 5u), band = (role - .94)/.05;
+    float chase = role > .94 && role < .99 ? uPres.w*smoothstep(band, band + .15, uDwell) : 0.;
+    V.xyz += (en*1.8 + cross(uPresD, en)*1.4)*uPres.w*exp(-dot(e, e)/.25)*(1. - chase)*uDt;
+    V.xyz += (uPres.xyz + (hash3(id*5u + 9u) - .5)*.5 - w)*chase*3.*uDt;
+    keep = 1. - chase;
+  }
+  // flights arc: the offset turns about a slowly drifting axis instead of shrinking in a straight line
+  V.xyz += cross(normalize(nvec(w*.6 + vec3(uTime*.07)) + 1e-4), V.xyz)*1.6*keep*uDt;
+  V.xyz *= exp(-uDt*1.2*keep);
+  oPos = P; oVel = V;
+}`;
+
+const VS_ATT = HEAD + COMMON + `
+uniform sampler2D uPos, uVel;
+uniform vec4 uNA, uNB, uPulse;
+uniform mat4 uVP; uniform mat3 uRot;
+uniform vec3 uCenter, uSweepAxis, uPalA0, uPalA1, uPalB0, uPalB1;
+uniform float uGen, uM, uSweep, uChaos, uSpread, uCollapse, uFlash, uDim, uTension, uTime, uPx, uBase, uScale, uPulseAmp;
+out vec3 vCol;
+void main(){
+  int W = textureSize(uPos, 0).x;
+  ivec2 ij = ivec2(gl_VertexID % W, gl_VertexID / W);
+  vec4 P = texelFetch(uPos, ij, 0), V = texelFetch(uVel, ij, 0);
+  bool inB = V.w > uGen + .5;
+  vec4 n = inB ? uNB : uNA;
+  vec3 l = (P.xyz - n.xyz)*n.w;
+  float front = 0.;
+  if(uSweep > -5.){ float x = uSweep - (dot(l, uSweepAxis)*.5 + .5); front = exp(-x*x/.006); }
+  float mi = inB ? 1. : 0.;
+  float role = hash1(uint(gl_VertexID)*13u + 5u);
+  vec3 w = uCenter + uRot*(l*uScale) + V.xyz;
+  if(uTension > .001) w += nvec(w*6. + vec3(uTime*11.))*.025*uTension;
+  w = smokeWarp(w, uTime, uChaos, uSpread);
+  w = uCenter + (w - uCenter)*(1. - uCollapse);
+  float pw = uPulseAmp*exp(-pow((dot(normalize(l + 1e-4), uPulse.xyz)*.5 + .5 - uPulse.w)*8., 2.));
+  vec3 col = role > .85 ? mix(uPalA1, uPalB1, mi) : mix(uPalA0, uPalB0, mi);
+  float b = uBase*(1. + front*3. + pw*2. + uFlash*3. + uTension*.8)*(1. - uDim);
+  if(role > .993) b *= 6.;
+  vec4 cp = uVP*vec4(w, 1.);
+  gl_Position = cp;
+  float sz = (role > .993 ? .016 : .006)*uPx/cp.w;
+  gl_PointSize = clamp(sz, 1., 16.);
+  vCol = col*b*min(1., sz*sz);
+}`;
+
+// ---------------------------------------------------------------- GL plumbing
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    const numbered = src.split('\n').map((l, i) => String(i + 1).padStart(4) + '  ' + l).join('\n');
+    throw new Error('Shader compile failed:\n' + gl.getShaderInfoLog(s) + '\n' + numbered);
+  }
+  return s;
+}
+function program(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('Program link failed:\n' + gl.getProgramInfoLog(p));
+  const u = {};
+  for (let i = 0, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); i < n; i++) {
+    const info = gl.getActiveUniform(p, i);
+    u[info.name.replace(/\[0\]$/, '')] = { loc: gl.getUniformLocation(p, info.name), type: info.type };
+  }
+  return { p, u };
+}
+function setUniforms(prog, vals) {
+  for (const k in vals) {
+    const e = prog.u[k], v = vals[k];
+    if (!e || v === undefined) continue;
+    switch (e.type) {
+      case gl.FLOAT: gl.uniform1f(e.loc, v); break;
+      case gl.FLOAT_VEC2: gl.uniform2fv(e.loc, v); break;
+      case gl.FLOAT_VEC3: gl.uniform3fv(e.loc, v); break;
+      case gl.FLOAT_VEC4: gl.uniform4fv(e.loc, v); break;
+      case gl.FLOAT_MAT3: gl.uniformMatrix3fv(e.loc, false, v); break;
+      case gl.FLOAT_MAT4: gl.uniformMatrix4fv(e.loc, false, v); break;
+      default: gl.uniform1i(e.loc, v);
+    }
+  }
+}
+function use(prog, vals, textures = []) {
+  gl.useProgram(prog.p);
+  textures.forEach((t, i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); });
+  setUniforms(prog, vals);
+}
+function makeTex(w, h, internal, format, type, filter, data = null) {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, format, type, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+function makeFbo(texs) {
+  const f = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+  texs.forEach((t, i) => gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, t, 0));
+  gl.drawBuffers(texs.map((_, i) => gl.COLOR_ATTACHMENT0 + i));
+  const st = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  if (st !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Framebuffer incomplete: 0x' + st.toString(16));
+  return f;
+}
+function rt16(w, h) { const tex = makeTex(w, h, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR); return { tex, fb: makeFbo([tex]), w, h }; }
+function freeRt(r) { gl.deleteFramebuffer(r.fb); gl.deleteTexture(r.tex); }
+function makeSim(w, h) {
+  const side = () => {
+    const pos = makeTex(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST), vel = makeTex(w, h, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+    return { pos, vel, fb: makeFbo([pos, vel]) };
+  };
+  return { w, h, n: w * h, a: side(), b: side() };
+}
+function bindTarget(t) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, t ? t.fb : null);
+  gl.viewport(0, 0, t ? t.w : canvas.width, t ? t.h : canvas.height);
+}
+const draw3 = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+function simPass(sim, prog, vals, extra = []) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, sim.b.fb);
+  gl.viewport(0, 0, sim.w, sim.h);
+  gl.disable(gl.BLEND);
+  use(prog, { ...vals, uPos: 0, uVel: 1, uSampA: 2, uSampB: 3 }, [sim.a.pos, sim.a.vel, ...extra]);
+  draw3();
+  [sim.a, sim.b] = [sim.b, sim.a];
+}
+function drawPoints(prog, count, vals, textures = []) {
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  use(prog, { ...vals, uPos: 0, uVel: 1 }, textures);
+  gl.drawArrays(gl.POINTS, 0, count);
+}
+
+gl.bindVertexArray(gl.createVertexArray());
+const P = {
+  down: program(VS_FULL, FS_DOWN), up: program(VS_FULL, FS_UP), comp: program(VS_FULL, FS_COMP), fade: program(VS_FULL, FS_FADE),
+  copy: program(VS_FULL, FS_COPY), dust: program(VS_DUST, FS_POINT),
+  lifeSim: program(VS_FULL, FS_LIFE_SIM), life: program(VS_LIFE, FS_POINT),
+  attSim: program(VS_FULL, FS_ATT_SIM), att: program(VS_ATT, FS_POINT),
+};
+
+let scene = null, dustRt = null, mips = [];
+function resize() {
+  const vw = innerWidth, vh = innerHeight;
+  const cw = vw / vh > 2 ? vh * 2 : vw, ch = cw / 2;
+  canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+  const dpr = Math.min(devicePixelRatio || 1, 1.5);
+  const W = Math.max(2, Math.round(cw * dpr)), H = Math.max(1, Math.round(ch * dpr));
+  if (W === canvas.width && H === canvas.height && scene) return;
+  canvas.width = W; canvas.height = H;
+  if (scene) { freeRt(scene); freeRt(dustRt); }
+  mips.forEach(freeRt);
+  scene = rt16(W, H); dustRt = rt16(W, H); mips = [];
+  for (let w = W >> 1, h = H >> 1; mips.length < 6 && w >= 8 && h >= 8; w >>= 1, h >>= 1) mips.push(rt16(w, h));
+  bindTarget(scene); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+}
+addEventListener('resize', resize);
+resize();
+
+function bloom() {
+  gl.disable(gl.BLEND);
+  let src = scene;
+  mips.forEach((m, i) => {
+    bindTarget(m);
+    use(P.down, { uSrc: 0, uTexel: [1 / src.w, 1 / src.h], uPrefilter: i === 0 ? 1 : 0, uThreshold: .7 }, [src.tex]);
+    draw3(); src = m;
+  });
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  for (let i = mips.length - 1; i > 0; i--) {
+    bindTarget(mips[i - 1]);
+    use(P.up, { uSrc: 0, uTexel: [1 / mips[i].w, 1 / mips[i].h] }, [mips[i].tex]);
+    draw3();
+  }
+  gl.disable(gl.BLEND);
+}
+
+// ---------------------------------------------------------------- conductor (shared, irregular)
+const STYLES = {
+  dissolve: { w: 3, dur: [2.8, 5.2], name: '煙散' },
+  morph: { w: 2.4, dur: [3, 6.5], name: '流變' },
+  partial: { w: 2, dur: [4, 8], name: '蛻變' },
+  implode: { w: 1.1, dur: [2.4, 3.8], name: '塌縮' },
+  rest: { w: .9, dur: [7, 11], name: '散逸' },
+};
+function pickStyle(recent) {
+  const last = recent[recent.length - 1];
+  const ws = Object.entries(STYLES).map(([k, v]) => [k, k === last ? 0 : v.w / (1 + 1.5 * recent.filter(x => x === k).length)]);
+  let r = Math.random() * ws.reduce((s, [, w]) => s + w, 0);
+  for (const [k, w] of ws) if ((r -= w) <= 0) return k;
+  return 'dissolve';
+}
+function newPalette(prev) {
+  const h = prev ? prev.h + (Math.random() < .5 ? -1 : 1) * rand(70, 170) : rand(0, 360);
+  const s = Math.random() < .1 ? rand(.05, .2) : rand(.55, .9);
+  return { h: (h + 360) % 360, body: hsv(h, s, 1), hi: hsv(h + rand(-45, 45), s * .45, 1) };
+}
+
+class Conductor {
+  constructor(world) {
+    this.world = world; this.time = 0; this.dt = 1 / 60; this.recent = []; this.flurry = 0;
+    this.R = [1, 0, 0, 0, 1, 0, 0, 0, 1]; this.spin = { axis: randDir(), speed: .15, toAxis: randDir(), toSpeed: .15 };
+    this.form = world.makeForm(null, 'dissolve'); this.next = null;
+    this.pal = newPalette(null); this.palNext = null;
+    this.center = [0, 0, 0]; this.target = [0, 0, 0]; this.centerNow = [0, 0, 0]; this.scaleNow = this.form.scale;
+    this.pulse = { axis: [0, 1, 0], pos: 0, amp: 0, t: 0, dur: 1, on: false }; this.nextPulse = rand(2, 5);
+    this.sweepAxis = [0, 1, 0]; this.pre = null; this.fake = null; this.carry = 0; this.breath = 1;
+    this.peel = null; this.peelAxis = [0, 1, 0];
+    this.sig = { m: 0, chaos: 0, collapse: 0, burst: 0, flash: 0, dim: 0, spread: 0, sweep: -9, tension: 0, peel: 0 };
+    this.enterHold();
+  }
+  enterHold() { this.phase = 'hold'; this.t = 0; this.dur = this.holdDuration(); this.label = '停留'; }
+  holdDuration() {
+    if (this.flurry > 0) { this.flurry--; return rand(.5, 1.6); }
+    if (Math.random() < .12) this.flurry = randi(1, 3);
+    return clamp(Math.exp(Math.log(4.5) + randn() * .55), 1.2, 15);
+  }
+  startTransition(style = FORCED || pickStyle(this.recent)) {
+    this.recent.push(style); if (this.recent.length > 5) this.recent.shift();
+    this.style = style;
+    this.next = this.world.makeForm(this.form, style);
+    this.palNext = newPalette(this.pal);
+    this.dur = rand(...STYLES[style].dur) * (this.flurry > 0 ? .7 : 1);
+    this.sweepAxis = randDir();
+    this.target = [rand(-1, 1) * this.world.roam[0], rand(-1, 1) * this.world.roam[1], 0];
+    this.phase = 'trans'; this.t = 0; this.label = STYLES[style].name;
+    if (this.world.onTransition) this.world.onTransition(this);
+  }
+  commit() {
+    this.form = this.next; this.pal = this.palNext; this.next = null; this.palNext = null;
+    if (this.world.onCommit) this.world.onCommit(this);
+    this.enterHold();
+  }
+  // Creative hook for people: a stimulus can cut a hold short or send a ripple; later sensors call this.
+  stimulus() {
+    if (this.phase !== 'hold' || this.pre || this.t < .6) return;
+    if (Math.random() < .65) { this.pre = { t: 0, dur: rand(.4, 1.1) }; this.label = '察覺'; }
+    else this.startPulse();
+  }
+  startPulse() { this.pulse = { axis: randDir(), pos: 0, amp: 0, t: 0, dur: rand(1.2, 2.6), on: true }; }
+  update(dt) {
+    this.dt = dt; this.time += dt; this.t += dt;
+    const s = Object.assign(this.sig, { m: 0, chaos: 0, collapse: 0, burst: 0, flash: 0, dim: 0, spread: 0, sweep: -9, tension: 0, peel: 0 });
+    if (this.phase === 'hold') {
+      if (this.pre) {
+        this.pre.t += dt; s.tension = ease(Math.min(1, this.pre.t / this.pre.dur));
+        if (this.pre.t >= this.pre.dur) { this.pre = null; this.carry = 1; this.startTransition(); }
+      } else if (this.t >= this.dur) {
+        if (Math.random() < .5) { this.pre = { t: 0, dur: rand(.6, 2.2) }; this.label = '蓄勢'; }
+        else { this.carry = 0; this.startTransition(); }
+      } else {
+        if (!this.fake && !this.peel && this.t > 1 && this.dur - this.t > 2.5 && Math.random() < dt * .07) { this.fake = { t: 0, dur: rand(1.4, 3) }; this.label = '屏息'; }
+        if (this.form.type === 'shell' && !this.peel && !this.fake && this.t > .8 && this.dur - this.t > 3 && Math.random() < dt * .15) {
+          this.peel = { t: 0, dur: rand(2.6, 4.5) }; this.peelAxis = randDir(); this.label = '剝落';
+        }
+        if (this.fake) {
+          this.fake.t += dt; const x = Math.min(1, this.fake.t / this.fake.dur);
+          s.tension = .75 * Math.pow(Math.sin(Math.PI * x), 2);
+          if (x >= 1) { this.fake = null; this.label = '停留'; }
+        }
+      }
+      if (Math.random() < dt * .04) this.target = add(this.target, [rand(-.3, .3), rand(-.08, .08), 0]).map((v, i) => clamp(v, -this.world.roam[i] || 0, this.world.roam[i] || 0));
+    }
+    if (this.phase === 'trans') {
+      const u = Math.min(1, this.t / this.dur), D = this.dur;
+      s.tension = this.carry * (1 - smooth(0, .25, u));
+      switch (this.style) {
+        case 'dissolve':
+          s.chaos = smooth(0, .38, u) * (1 - smooth(.62, .96, u));
+          s.m = smooth(.42, .78, u);
+          s.flash = .9 * Math.exp(-Math.pow((u - .86) / .07, 2));
+          break;
+        case 'rest':
+          s.chaos = smooth(0, .18, u) * (1 - smooth(.8, .98, u));
+          s.spread = s.chaos; s.dim = .3 * s.chaos;
+          s.m = smooth(.55, .85, u);
+          s.flash = 1.4 * Math.exp(-Math.pow((u - .93) / .04, 2));
+          break;
+        case 'morph':
+          s.m = ease(u); s.chaos = .22 * Math.sin(Math.PI * u); s.flash = .3 * Math.sin(Math.PI * u);
+          break;
+        case 'partial':
+          s.sweep = lerp(-.3, 1.3, ease(u)); s.m = u; s.chaos = .05;
+          break;
+        case 'implode': {
+          const a = .36, h = .5;
+          s.collapse = u < a ? ease(u / a) : u < h ? 1 : 1 - easeOutBack((u - h) / (1 - h));
+          s.m = u < .43 ? 0 : 1;
+          s.flash = 2.2 * Math.exp(-Math.pow((u - .47) / .05, 2));
+          s.burst = u > h ? Math.exp(-(u - h) * D * 6) : 0;
+          break;
+        }
+      }
+      if (this.t >= this.dur) this.commit();
+    }
+    if (this.peel) {
+      this.peel.t += dt; const x = Math.min(1, this.peel.t / this.peel.dur);
+      s.peel = Math.pow(Math.sin(Math.PI * x), 2);
+      if (x >= 1) { this.peel = null; if (this.label === '剝落') this.label = '停留'; }
+    }
+    // travelling ripple of light, at irregular times
+    const p = this.pulse;
+    if (!p.on && (this.nextPulse -= dt) <= 0) this.startPulse();
+    if (p.on) {
+      p.t += dt; const x = p.t / p.dur;
+      p.pos = lerp(-.15, 1.15, x); p.amp = Math.sin(Math.PI * Math.min(x, 1)) * .9;
+      if (x >= 1) { p.on = false; p.amp = 0; this.nextPulse = rand(2.5, 9); }
+    }
+    // body motion: glide toward a target, drift, rotate about a wandering axis
+    const T = this.time, r = this.world.roam;
+    const k = 1 - Math.exp(-dt * (this.phase === 'trans' ? .55 : .12));
+    this.center = this.center.map((v, i) => lerp(v, this.target[i], k));
+    this.centerNow = [this.center[0] + Math.sin(T * .031 + 1.3) * .18 * r[0], this.center[1] + Math.sin(T * .047 + .4) * .25 * r[1], Math.sin(T * .023) * .25];
+    const sp = this.spin;
+    if (Math.random() < dt * .08) { sp.toAxis = randDir(); sp.toSpeed = rand(.05, .35); }
+    sp.axis = norm(add(sp.axis, mul(sub(sp.toAxis, sp.axis), Math.min(1, dt * .3))));
+    sp.speed = lerp(sp.speed, sp.toSpeed, Math.min(1, dt * .3));
+    this.R = orthonormal(mat3mul(axisAngle(sp.axis, sp.speed * (1 + 2 * s.chaos) * dt), this.R));
+    const mScale = this.phase === 'trans' && this.style === 'partial' ? ease(Math.min(1, this.t / this.dur)) : s.m;
+    this.scaleNow = lerp(this.form.scale, (this.next || this.form).scale, mScale) * (1 + .025 * Math.sin(T * .83) * Math.sin(T * .37 + .5));
+    this.breath = .92 + .08 * Math.sin(T * .71) * Math.sin(T * .29 + 1.7);
+  }
+}
+
+// ---------------------------------------------------------------- presence (mouse stands in for a person)
+// world: the pointer on the plane through the form; origin/dir: the person's line of sight; dwell: seconds they have stayed
+const presence = { on: false, inside: false, ndc: [0, 0], strength: 0, world: [0, 0, 0], was: 0, origin: [0, 0, 5], dir: [0, 0, -1], dwell: 0 };
+canvas.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  presence.ndc = [((e.clientX - r.left) / r.width) * 2 - 1, 1 - ((e.clientY - r.top) / r.height) * 2];
+  presence.inside = true;
+});
+canvas.addEventListener('pointerleave', () => { presence.inside = false; });
+
+// ---------------------------------------------------------------- forms
+const CRE_KINDS = { cluster: '團簇', spine: '脊列', bud: '出芽', colony: '群落', pair: '雙生' };
+const CRE_AREA = .6; // every form is scaled to this sum of r^2: same mass, same brightness
+function makeCreature(prev) {
+  const kinds = Object.keys(CRE_KINDS);
+  let kind;
+  do kind = pick(kinds); while (prev && kind === prev.kind && Math.random() < .85);
+  const blobs = [], tends = [];
+  const B = (c, r) => blobs.push([c[0], c[1], c[2], r]);
+  if (kind === 'cluster') { for (let i = randi(3, 6); i--;) B(mul(randDir(), rand(0, .45)), rand(.26, .48)); }
+  else if (kind === 'spine') {
+    let p = [0, 0, 0], d = randDir();
+    const n = randi(4, 7);
+    for (let i = 0; i < n; i++) { B(p, rand(.18, .36) * (1 - i / n * .4)); d = norm(add(d, mul(randDir(), .8))); p = add(p, mul(d, rand(.24, .34))); }
+  } else if (kind === 'bud') { B([0, 0, 0], rand(.5, .66)); for (let i = randi(2, 5); i--;) B(mul(randDir(), rand(.55, .78)), rand(.13, .28)); }
+  else if (kind === 'colony') { for (let i = randi(5, 8); i--;) B(mul(randDir(), rand(.3, .85)), rand(.15, .28)); }
+  else { const d = randDir(), g = rand(.5, .8); B(mul(d, -g * .5), rand(.38, .52)); B(mul(d, g * .5), rand(.18, .3)); }
+  for (let i = kind === 'colony' ? randi(2, 4) : randi(0, 3); i--;) {
+    let a, b;
+    if (kind === 'colony') { const [p, q] = shuffle(blobs.slice()); a = p.slice(0, 3); b = q.slice(0, 3); }
+    else { const s = pick(blobs); a = s.slice(0, 3); b = add(a, mul(randDir(), s[3] + rand(.35, .85))); }
+    tends.push([a, b, rand(.04, .075), rand(.3, 1)]);
+  }
+  let ws = 0, c = [0, 0, 0];
+  for (const b of blobs) { const w = b[3] ** 3; ws += w; c = add(c, mul(b, w)); }
+  c = mul(c, 1 / ws);
+  let ext = 0, tip = 0, area = 0;
+  for (const b of blobs) { b[0] -= c[0]; b[1] -= c[1]; b[2] -= c[2]; ext = Math.max(ext, len(b) + b[3]); area += b[3] ** 2; }
+  for (const t of tends) { t[0] = sub(t[0], c); t[1] = sub(t[1], c); tip = Math.max(tip, len(t[1])); }
+  // Size by mass (surface ~ sum r^2) so no form is a tiny over-bright knot; shrink only to fit the frame,
+  // and dim a shrunk one by its lost area since the same particles crowd onto less surface.
+  const k = Math.min(Math.sqrt(CRE_AREA / area), 1.15 / ext, 1.6 / Math.max(tip, 1e-3));
+  const blobArr = new Float32Array(32), t0 = new Float32Array(16), t1 = new Float32Array(16);
+  const slots = shuffle([0, 1, 2, 3, 4, 5, 6, 7]);
+  blobs.forEach((b, i) => blobArr.set([b[0] * k, b[1] * k, b[2] * k, b[3] * k], slots[i] * 4));
+  tends.forEach((t, i) => { t0.set([...mul(t[0], k), t[2] * k], i * 4); t1.set([...mul(t[1], k), t[3]], i * 4); });
+  // the floor keeps a stretched-out form from going so dim it reads as sparse
+  return { type: 'creature', kind, name: CRE_KINDS[kind], blobs: blobArr, t0, t1, scale: rand(.8, 1), gain: clamp(area * k * k / CRE_AREA, .55, 1) };
+}
+
+function makeShell() {
+  const nl = randi(1, 5), nf = randi(1, 2), cav = Math.random() < .5, tw = Math.random() < .55;
+  const L = new Float32Array(20), Fo = new Float32Array(8), S = new Float32Array(12);
+  for (let i = 0; i < nl; i++) { const k = rand(3, 16); L.set([...mul(randDir(), k), Math.random() < .25 ? rand(-.35, -.12) : rand(.2, .85)], i * 4); }
+  for (let i = 0; i < nf; i++) Fo.set([...mul(randDir(), rand(1.5, 6)), rand(.03, .13)], i * 4);
+  S.set([rand(.6, 1.35), rand(.65, 1.5), rand(.6, 1.35), tw ? rand(.6, 2.4) * (Math.random() < .5 ? -1 : 1) : 0], 0);
+  S.set([...randDir(), rand(.05, .65)], 4);
+  S.set([cav ? rand(.15, .6) : 1, rand(.04, .16), rand(.8, 2.4), rand(.003, .035)], 8);
+  const tags = [nl && `葉瓣×${nl}`, nf && '皺褶', cav && '凹陷', tw && '扭轉'].filter(Boolean);
+  const f = { type: 'shell', kind: tags.join('·'), name: '殼 ' + tags.join('·'), L, Fo, S, gain: .35 }; // dimmer than the creature, as before: a bright skin washes out its band of light
+  // fit: sample the radius function on the CPU so every shell spans about the same height
+  let mx = 0;
+  // random directions plus every lobe's own axis: a narrow lobe (k up to 16) slips between random samples
+  for (let i = 0; i < 405; i++) {
+    const d = i < 400 ? randDir() : norm(Array.from(L.subarray((i - 400) * 4, (i - 400) * 4 + 3))); let r = 1;
+    // lobes swell up to 1.35x (and shrink to .65x) while they breathe, so fit the largest they get
+    for (let j = 0; j < 5; j++) { const a = L.subarray(j * 4, j * 4 + 3), kk = len(a), w = L[j * 4 + 3]; if (kk > 1e-3) r += w * (w > 0 ? 1.35 : .65) * Math.pow(Math.max(dot(d, a) / kk, 0), kk); }
+    for (let j = 0; j < 2; j++) r += Fo[j * 4 + 3];
+    r += S[9];
+    r *= lerp(1, S[8], smooth(S[7], S[7] + .3, dot(d, S.subarray(4, 7))));
+    mx = Math.max(mx, len([d[0] * r * S[0], d[1] * r * S[1], d[2] * r * S[2]]));
+  }
+  f.scale = rand(.85, 1.1) / mx;
+  return f;
+}
+
+const FAMS = [
+  { name: 'Aizawa', base: [.95, .7, .6, 3.5, .25, .1], jit: .04, dt: .01, x0: [.1, 0, 0] },
+  { name: 'Thomas', range: [[.19, .209]], dt: .04, x0: [.1, 0, 0] },
+  { name: 'Halvorsen', range: [[1.5, 2.05]], dt: .004, x0: [-1.48, -1.51, 2.04] },
+  { name: 'Dadras', base: [3, 2.7, 1.7, 2, 9], jit: .04, dt: .004, x0: [1.1, 2.1, -2] },
+  { name: 'Chen-Lee', base: [5, -10, -.38], jit: .04, dt: .003, x0: [1, 1, 1] },
+  { name: 'Rössler', range: [[.1, .3], [.1, .3], [4.5, 9]], dt: .02, x0: [1, 1, 1] },
+  { name: 'Lorenz', range: [[8, 13], [24, 42], [2, 3]], dt: .004, x0: [1, 1, 1] },
+  { name: 'Four-wing', base: [.2, .01, -.4], jit: .05, dt: .02, x0: [1.3, -.18, .01] },
+];
+function famF(f, p, x, y, z) {
+  switch (f) {
+    case 0: { const [a, b, c, d, e, ff] = p; return [(z - b) * x - d * y, d * x + (z - b) * y, c + a * z - z * z * z / 3 - (x * x + y * y) * (1 + e * z) + ff * z * x * x * x]; }
+    case 1: { const b = p[0]; return [Math.sin(y) - b * x, Math.sin(z) - b * y, Math.sin(x) - b * z]; }
+    case 2: { const a = p[0]; return [-a * x - 4 * y - 4 * z - y * y, -a * y - 4 * z - 4 * x - z * z, -a * z - 4 * x - 4 * y - x * x]; }
+    case 3: { const [a, b, c, d, e] = p; return [y - a * x + b * y * z, c * y - x * z + z, d * x * y - e * z]; }
+    case 4: { const [a, b, c] = p; return [a * x - y * z, b * y + x * z, c * z + x * y / 3]; }
+    case 5: { const [a, b, c] = p; return [-y - z, x + a * y, b + z * (x - c)]; }
+    case 6: { const [s, r, b] = p; return [s * (y - x), x * (r - z) - y, x * y - b * z]; }
+    default: { const [a, b, c] = p; return [a * x + y * z, b * x + c * y - x * z, -z - x * y]; }
+  }
+}
+const SAMP = 256;
+// Integrate one long orbit on the CPU: gives respawn points, the centre/size to normalise by, and the flow speed.
+function rk4(fi, p, h, s) {
+  const [x, y, z] = s;
+  const k1 = famF(fi, p, x, y, z);
+  const k2 = famF(fi, p, x + k1[0] * h / 2, y + k1[1] * h / 2, z + k1[2] * h / 2);
+  const k3 = famF(fi, p, x + k2[0] * h / 2, y + k2[1] * h / 2, z + k2[2] * h / 2);
+  const k4 = famF(fi, p, x + k3[0] * h, y + k3[1] * h, z + k3[2] * h);
+  for (let j = 0; j < 3; j++) s[j] += h / 6 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
+  return Number.isFinite(s[0] + s[1] + s[2]) && Math.abs(s[0]) + Math.abs(s[1]) + Math.abs(s[2]) < 1e4;
+}
+function sampleAttractor(fi, params) {
+  const Fm = FAMS[fi], N = SAMP * SAMP, out = new Float32Array(N * 4), h = Fm.dt;
+  const s = Fm.x0.map(v => v + rand(-.01, .01));
+  for (let i = 0; i < 4000; i++) if (!rk4(fi, params, h, s)) return null;
+  // Largest Lyapunov exponent from a shadow orbit 1e-7 away: a periodic loop scores ~0 and is rejected as too plain.
+  const sh = [s[0] + 1e-7, s[1], s[2]];
+  let lyap = 0;
+  for (let i = 0; i < 6000; i++) {
+    if (!rk4(fi, params, h, s) || !rk4(fi, params, h, sh)) return null;
+    if (i % 10 === 9) {
+      const d = Math.hypot(sh[0] - s[0], sh[1] - s[1], sh[2] - s[2]) || 1e-30;
+      lyap += Math.log(d / 1e-7);
+      for (let j = 0; j < 3; j++) sh[j] = s[j] + (sh[j] - s[j]) * 1e-7 / d;
+    }
+  }
+  if (lyap / (6000 * h) < .01) return null;
+  let cx = 0, cy = 0, cz = 0;
+  for (let i = 0; i < N; i++) {
+    if (!rk4(fi, params, h, s) || !rk4(fi, params, h, s)) return null;
+    out[i * 4] = s[0]; out[i * 4 + 1] = s[1]; out[i * 4 + 2] = s[2]; out[i * 4 + 3] = 1;
+    cx += s[0]; cy += s[1]; cz += s[2];
+  }
+  cx /= N; cy /= N; cz /= N;
+  const dist = new Float32Array(N);
+  for (let i = 0; i < N; i++) dist[i] = Math.hypot(out[i * 4] - cx, out[i * 4 + 1] - cy, out[i * 4 + 2] - cz);
+  const ext = Float32Array.from(dist).sort()[Math.floor(N * .99)];
+  if (!(ext > 1e-3)) return null;
+  const G = 16, occ = new Uint8Array(G * G * G);
+  let filled = 0;
+  for (let i = 0; i < N; i++) {
+    const g = [out[i * 4] - cx, out[i * 4 + 1] - cy, out[i * 4 + 2] - cz].map(v => Math.floor((v / ext * .5 + .5) * G));
+    if (g.some(v => v < 0 || v >= G)) continue;
+    const idx = (g[0] * G + g[1]) * G + g[2];
+    if (!occ[idx]) { occ[idx] = 1; filled++; }
+  }
+  if (filled / (G * G * G) < .035) return null; // too thin: reads as a drawn loop
+  let sum = 0, cnt = 0;
+  for (let i = 0; i < N; i += 64, cnt++) sum += len(famF(fi, params, out[i * 4], out[i * 4 + 1], out[i * 4 + 2]));
+  return { samples: out, center: [cx, cy, cz], k: 1 / ext, rate: .5 / (sum / cnt / ext) };
+}
+
+// ---------------------------------------------------------------- worlds
+let cam = null;
+function uCommon(c) {
+  const s = c.sig, nx = c.palNext || c.pal;
+  return {
+    uTime: c.time, uDt: c.dt, uM: s.m, uChaos: s.chaos, uTension: s.tension, uCollapse: s.collapse, uBurst: s.burst,
+    uFlash: s.flash, uDim: s.dim, uSpread: s.spread, uSweep: s.sweep, uSweepAxis: c.sweepAxis,
+    uPulse: [...c.pulse.axis, c.pulse.pos], uPulseAmp: c.pulse.amp,
+    uCenter: c.centerNow, uRot: c.R, uScale: c.scaleNow,
+    uPalA0: c.pal.body, uPalA1: c.pal.hi, uPalB0: nx.body, uPalB1: nx.hi,
+    uPres: [...presence.world, presence.strength], uPresO: presence.origin, uPresD: presence.dir,
+    uDwell: .15 + presence.dwell / 10, // a few follow at once, the whole loose band after ~10 s
+    uPeel: s.peel, uPeelAxis: c.peelAxis, uVP: cam.vp, uPx: cam.px,
+  };
+}
+
+const worlds = {
+  // 無名生物 and 有機殼 are one world: the same particles take either kind's shape; types says which kinds may appear
+  life: {
+    label: '合體', types: ['creature', 'shell'], trails: false, roam: [1.1, .22],
+    camera: t => ({ eye: [Math.sin(t * .05) * .5, -.35 + Math.sin(t * .037) * .12, 5.2], target: [0, .05, 0], fov: 32 }),
+    makeForm(prev, style) {
+      // a transition sometimes turns one kind into the other, the big ones (散逸, 塌縮) more often
+      let type = prev ? prev.type : pick(this.types);
+      if (prev && this.types.length > 1 && Math.random() < (style === 'rest' || style === 'implode' ? .6 : .25)) type = this.types.find(t => t !== type);
+      return type === 'shell' ? makeShell() : makeCreature(prev && prev.type === 'creature' ? prev : null);
+    },
+    u(c) {
+      // a kind missing on one side keeps the other side's shape, so its half of the blend holds still
+      const A = c.form, B = c.next || A, cr = f => f.type === 'creature', cA = cr(A) ? A : B, cB = cr(B) ? B : A, sA = cr(A) ? B : A, sB = cr(B) ? A : B;
+      return {
+        uBA: cA.blobs, uBB: cB.blobs, uTA0: cA.t0, uTA1: cA.t1, uTB0: cB.t0, uTB1: cB.t1,
+        uLA: sA.L, uLB: sB.L, uFA: sA.Fo, uFB: sB.Fo, uSA: sA.S, uSB: sB.S, uShellA: +!cr(A), uShellB: +!cr(B),
+        uBase: .088 * c.breath * lerp(A.gain, B.gain, c.sig.m),
+      };
+    },
+    enter(c) { this.sim = this.sim || makeSim(512, 384); simPass(this.sim, P.lifeSim, { ...uCommon(c), ...this.u(c), uInit: 1 }); },
+    simulate(c) { simPass(this.sim, P.lifeSim, { ...uCommon(c), ...this.u(c), uInit: 0 }); },
+    draw(c) { drawPoints(P.life, this.sim.n, { ...uCommon(c), ...this.u(c) }, [this.sim.a.pos, this.sim.a.vel]); },
+    describe: f => (f.type === 'creature' ? '生物 ' : '') + f.name,
+  },
+  attractor: {
+    label: '奇異吸子', trails: true, roam: [.5, .1], gen: 0, recentFams: [],
+    camera: t => { const a = t * .05; return { eye: [Math.sin(a) * 3.4, .3 * Math.sin(t * .05), Math.cos(a) * 3.4], target: [0, 0, 0], fov: 45 }; },
+    makeForm(prev, style) {
+      const same = prev && style === 'morph';
+      for (let tries = 0; tries < 14; tries++) {
+        let fi = same && tries < 6 ? prev.fam : randi(0, FAMS.length - 1);
+        if (!(same && tries < 6)) while (prev && (fi === prev.fam || this.recentFams.includes(fi))) fi = randi(0, FAMS.length - 1);
+        const Fm = FAMS[fi];
+        const params = Fm.range ? Fm.range.map(([a, b]) => rand(a, b)) : Fm.base.map(v => v * (1 + randn() * Fm.jit));
+        const r = sampleAttractor(fi, params);
+        if (!r) continue;
+        this.recentFams.push(fi); if (this.recentFams.length > 2) this.recentFams.shift();
+        const packed = new Float32Array(8); packed.set(params);
+        return { fam: fi, name: Fm.name, params: packed, ...r, scale: rand(.8, 1) };
+      }
+      return prev || this.makeForm(null, 'dissolve');
+    },
+    upload(tex, f) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SAMP, SAMP, gl.RGBA, gl.FLOAT, f.samples); },
+    enter(c) {
+      this.sim = this.sim || makeSim(256, 256);
+      this.sampA = this.sampA || makeTex(SAMP, SAMP, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+      this.sampB = this.sampB || makeTex(SAMP, SAMP, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+      this.gen = 0;
+      this.upload(this.sampA, c.form); this.upload(this.sampB, c.form);
+      simPass(this.sim, P.attSim, { ...uCommon(c), ...this.u(c), uInit: 1 }, [this.sampA, this.sampB]);
+    },
+    onTransition(c) { this.upload(this.sampB, c.next); },
+    onCommit() { [this.sampA, this.sampB] = [this.sampB, this.sampA]; this.gen++; },
+    u(c) {
+      const A = c.form, B = c.next || A, dt = c.dt * (1 + .6 * c.sig.tension);
+      const tauA = A.rate * dt, tauB = B.rate * dt;
+      const steps = clamp(Math.max(Math.ceil(tauA / FAMS[A.fam].dt), Math.ceil(tauB / FAMS[B.fam].dt)), 1, 8);
+      return {
+        uFamA: A.fam, uFamB: B.fam, uSteps: steps,
+        uPA0: A.params.subarray(0, 4), uPA1: A.params.subarray(4, 8), uPB0: B.params.subarray(0, 4), uPB1: B.params.subarray(4, 8),
+        uNA: [...A.center, A.k], uNB: [...B.center, B.k], uDtA: Math.min(tauA / steps, FAMS[A.fam].dt * 1.5), uDtB: Math.min(tauB / steps, FAMS[B.fam].dt * 1.5),
+        uGen: this.gen, uBase: .03 * c.breath,
+      };
+    },
+    simulate(c) { simPass(this.sim, P.attSim, { ...uCommon(c), ...this.u(c), uInit: 0 }, [this.sampA, this.sampB]); },
+    draw(c) { drawPoints(P.att, this.sim.n, { ...uCommon(c), ...this.u(c) }, [this.sim.a.pos, this.sim.a.vel]); },
+    describe: f => f.name,
+  },
+};
+
+// ---------------------------------------------------------------- UI + loop
+const statusBox = document.getElementById('status');
+const presenceBox = document.getElementById('presence');
+const statusToggle = document.getElementById('showStatus');
+const buttons = [...document.querySelectorAll('.worlds button')];
+const opts = new Set(location.hash.slice(1).split('&').filter(Boolean));
+const FORCED = [...opts].find(k => k in STYLES); // test hook: #rest etc. makes every transition that style
+presenceBox.checked = opts.has('presence');
+statusToggle.checked = opts.has('status');
+statusBox.hidden = !statusToggle.checked;
+presenceBox.addEventListener('change', () => { presence.on = presenceBox.checked; });
+statusToggle.addEventListener('change', () => { statusBox.hidden = !statusToggle.checked; });
+presence.on = presenceBox.checked;
+
+// 1 and 4 are 合體 held to one kind
+const MODES = { mixed: { label: '合體', types: ['creature', 'shell'] }, creature: { label: '無名生物', types: ['creature'] }, shell: { label: '有機殼', types: ['shell'] } };
+let world, conductor;
+function enterWorld(key) {
+  world = key === 'attractor' ? worlds.attractor : Object.assign(worlds.life, MODES[key]);
+  conductor = new Conductor(world);
+  buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.world === key)));
+  cam = cameraFor(world, 0);
+  world.enter(conductor);
+  bindTarget(scene); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+}
+buttons.forEach(b => b.addEventListener('click', () => enterWorld(b.dataset.world)));
+
+function cameraFor(w, t) {
+  const c = w.camera(t), fov = c.fov * Math.PI / 180, aspect = canvas.width / canvas.height;
+  const vp = mat4mul(perspective(fov, aspect, .05, 60), lookAt(c.eye, c.target, [0, 1, 0]));
+  return { ...c, vp, px: canvas.height / (2 * Math.tan(fov / 2)), fovRad: fov, aspect };
+}
+function updatePresence(dt) {
+  const target = presence.on && presence.inside ? 1 : 0;
+  presence.strength = lerp(presence.strength, target, 1 - Math.exp(-dt * (target ? 1.8 : 1)));
+  if (presence.strength > .5 && presence.was <= .5) conductor.stimulus();
+  presence.was = presence.strength;
+  presence.dwell = presence.strength > .5 ? presence.dwell + dt : Math.max(0, presence.dwell - dt * 2);
+  // cast the pointer onto the plane through the form that faces the camera
+  const f = norm(sub(cam.target, cam.eye)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f), th = Math.tan(cam.fovRad / 2);
+  const d = norm(add(f, add(mul(r, presence.ndc[0] * th * cam.aspect), mul(u, presence.ndc[1] * th))));
+  presence.origin = cam.eye; presence.dir = d;
+  const den = dot(d, f);
+  if (den > 1e-3) presence.world = add(cam.eye, mul(d, dot(sub(conductor.centerNow, cam.eye), f) / den));
+}
+
+// multiply the bound target by k: 0 clears it, just under 1 leaves light trails
+function fade(k) { gl.enable(gl.BLEND); gl.blendFunc(gl.ZERO, gl.CONSTANT_COLOR); gl.blendColor(k, k, k, 1); use(P.fade, {}); draw3(); }
+
+let last = performance.now(), frame = 0;
+function loop(now) {
+  const dt = Math.min(1 / 30, Math.max(1e-3, (now - last) / 1000));
+  last = now;
+  resize();
+  conductor.update(dt);
+  cam = cameraFor(world, conductor.time);
+  updatePresence(dt);
+  world.simulate(conductor);
+  const trail = .9 + .055 * conductor.sig.chaos;
+  // Dust is always seen through 奇異吸子's orbiting camera: motes in front of and behind its pivot slide opposite ways,
+  // which reads as deep space. Moving the whole sheet one way instead read as rain.
+  const dc = cameraFor(worlds.attractor, conductor.time);
+  const dustU = { uVP: dc.vp, uPx: dc.px, uTime: conductor.time, uDustB: .22, uFocusD: len(sub(dc.eye, dc.target)), uPalA0: conductor.pal.body };
+  if (world.trails) {
+    // 奇異吸子: the whole scene is a trail buffer, dust included
+    bindTarget(scene); fade(trail);
+    world.draw(conductor); drawPoints(P.dust, 2500, dustU);
+  } else {
+    // the body is drawn sharp every frame; the dust keeps its own short trail underneath, so it streaks the same way
+    bindTarget(dustRt); fade(trail); drawPoints(P.dust, 2500, dustU);
+    bindTarget(scene); fade(0);
+    world.draw(conductor);
+    use(P.copy, { uSrc: 0 }, [dustRt.tex]); draw3();
+  }
+  bloom();
+  bindTarget(null);
+  use(P.comp, { uScene: 0, uBloom: 1, uBloomK: .22, uExposure: 1 }, [scene.tex, mips[0].tex]);
+  draw3();
+  if (!statusBox.hidden && frame++ % 6 === 0) {
+    const c = conductor;
+    const when = c.phase === 'hold' ? `${c.t.toFixed(1)} / ${c.dur.toFixed(1)} s` : `${Math.round(c.t / c.dur * 100)}%`;
+    statusBox.textContent = [
+      world.label,
+      `事件  ${c.label}  ${when}${c.flurry ? '  連變' : ''}`,
+      `形態  ${world.describe(c.form)}${c.next ? '  →  ' + world.describe(c.next) : ''}`,
+      `對人  ${presence.on ? (presence.strength > .5 ? `有人在場 ${presence.dwell.toFixed(0)} s` : '無人') : '（未開）'}`,
+    ].join('\n');
+  }
+  requestAnimationFrame(loop);
+}
+enterWorld(['mixed', 'creature', 'shell', 'attractor'].find(k => opts.has(k)) || 'mixed');
+requestAnimationFrame(loop);
+})();
+</script>
