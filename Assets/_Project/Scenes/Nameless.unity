@@ -219,6 +219,8 @@ MonoBehaviour:
   mode: 0
   mouseIsViewer: 1
   showStatus: 0
+  dustCount: 10000
+  dustBrightness: 0.22
   sim: {fileID: 7200000, guid: 683650bb6a811214eb35fea9469f489d, type: 3}
   particleShader: {fileID: 4800000, guid: 43eba04f0c0a7be4ba8ce2ae37fad5d3, type: 3}
   dustShader: {fileID: 4800000, guid: 6f437127d7f05f2448d1d247acd1e21a, type: 3}
