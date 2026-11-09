@@ -4,7 +4,7 @@
 //
 // The prototype faded a dust buffer by k each frame instead of clearing it, so motes streak. Here each mote is drawn
 // once per remembered frame (newest first) with that frame's camera and time, weighted by the fades since: the same
-// sum, without a buffer. _TrailFrames and _Motes must match NamelessWorld.TrailFrames and NamelessWorld.Motes.
+// sum, without a buffer. _TrailFrames must match NamelessWorld.TrailFrames.
 Shader "FlowMirror/Nameless Dust"
 {
     SubShader
@@ -25,12 +25,12 @@ Shader "FlowMirror/Nameless Dust"
             #include "NamelessCommon.hlsl"
 
             #define _TrailFrames 64
-            #define _Motes 2500u
 
             float4x4 _DustView[_TrailFrames]; // the dust camera's view matrix in each remembered frame
             float4 _DustTW[_TrailFrames];     // x: that frame's time, y: how much of its light is left (0 = skip)
             float4 _PalA0;
             float _DustB, _FocusD, _FocalRatio; // _FocalRatio: the dust lens's focal length over this camera's
+            float _Motes;                       // how many motes; the draw has _Motes * _TrailFrames quads
 
             static const float2 Corners[6] = { float2(-1, -1), float2(1, -1), float2(1, 1), float2(-1, -1), float2(1, 1), float2(-1, 1) };
 
@@ -43,7 +43,7 @@ Shader "FlowMirror/Nameless Dust"
 
             Varyings Vert(uint vid : SV_VertexID)
             {
-                uint q = vid / 6, mote = q % _Motes, s = q / _Motes;
+                uint motes = (uint)_Motes, q = vid / 6, mote = q % motes, s = q / motes;
                 float2 corner = Corners[vid % 6];
                 Varyings o;
                 o.corner = corner;

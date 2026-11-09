@@ -22,11 +22,14 @@ namespace FlowMirror.Nameless
         [SerializeField] bool mouseIsViewer = true;
         [Tooltip("Shows the event and the form in the corner (the prototype's 顯示事件).")]
         [SerializeField] bool showStatus;
+        [Tooltip("Background dust motes. Each is drawn once per remembered trail frame, so many cost; the prototype had 2500.")]
+        [SerializeField, Range(500, 12000)] int dustCount = 2500;
+        [Tooltip("Background dust brightness; the brightest motes reach the bloom first. The prototype had .22.")]
+        [SerializeField, Range(0, 1)] float dustBrightness = .22f;
         [SerializeField] ComputeShader sim;
         [SerializeField] Shader particleShader, dustShader;
 
         const int Count = 512 * 384;  // particles; a multiple of NamelessSim's 256-thread groups
-        const int Motes = 2500;        // must match NamelessDust.shader _Motes
         const int TrailFrames = 64;    // must match NamelessDust.shader _TrailFrames
         const float DustFov = 45, DustOrbit = 3.4f;
         static readonly Bounds Everywhere = new(Vector3.zero, Vector3.one * 1000);
@@ -208,10 +211,11 @@ namespace FlowMirror.Nameless
             dust.SetMatrixArray("_DustView", dustView);
             dust.SetVectorArray("_DustTW", dustTW);
             dust.SetVector("_PalA0", conductor.Pal.Body);
-            dust.SetFloat("_DustB", .22f);
+            dust.SetFloat("_DustB", dustBrightness);
+            dust.SetFloat("_Motes", dustCount);
             dust.SetFloat("_FocusD", eye.magnitude);
             dust.SetFloat("_FocalRatio", Mathf.Tan(cam.fieldOfView * .5f * Mathf.Deg2Rad) / Mathf.Tan(DustFov * .5f * Mathf.Deg2Rad));
-            Graphics.RenderPrimitives(new RenderParams(dust) { worldBounds = Everywhere, camera = cam }, MeshTopology.Triangles, Motes * 6 * TrailFrames);
+            Graphics.RenderPrimitives(new RenderParams(dust) { worldBounds = Everywhere, camera = cam }, MeshTopology.Triangles, dustCount * 6 * TrailFrames);
         }
 
         void OnGUI()
