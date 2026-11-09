@@ -1,5 +1,5 @@
-// Background dust, seen through its own slowly orbiting camera (the prototype's 奇異吸子 camera): motes in front of
-// and behind its pivot slide opposite ways, which reads as deep space. Stateless motes in a deep box; out-of-focus
+// Background dust, seen through its own camera slowly swinging around a pivot: motes in front of and behind the pivot
+// slide opposite ways, which reads as deep space. Stateless motes in a deep box; out-of-focus
 // ones grow and dim. Ported from docs/lookdev/nameless.html (VS_DUST).
 //
 // The prototype faded a dust buffer by k each frame instead of clearing it, so motes streak. Here each mote is drawn

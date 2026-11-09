@@ -1133,6 +1133,7 @@ function enterWorld(key) {
 }
 buttons.forEach(b => b.addEventListener('click', () => enterWorld(b.dataset.world)));
 
+const dustView = { camera: t => { const a = .8 * Math.sin(t * .043) + .45 * Math.sin(t * .071 + 1.3); return { eye: [Math.sin(a) * 3.4, .3 * Math.sin(t * .05), Math.cos(a) * 3.4], target: [0, 0, 0], fov: 45 }; } };
 function cameraFor(w, t) {
   const c = w.camera(t), fov = c.fov * Math.PI / 180, aspect = canvas.width / canvas.height;
   const vp = mat4mul(perspective(fov, aspect, .05, 60), lookAt(c.eye, c.target, [0, 1, 0]));
@@ -1165,9 +1166,10 @@ function loop(now) {
   updatePresence(dt);
   world.simulate(conductor);
   const trail = .9 + .055 * conductor.sig.chaos;
-  // Dust is always seen through 奇異吸子's orbiting camera: motes in front of and behind its pivot slide opposite ways,
-  // which reads as deep space. Moving the whole sheet one way instead read as rain.
-  const dc = cameraFor(worlds.attractor, conductor.time);
+  // Dust is always seen through its own camera swinging around a pivot: motes in front of and behind it slide opposite
+  // ways, which reads as deep space. Moving the whole sheet one way instead read as rain. It swings across the front of
+  // the dust box instead of circling it (as 奇異吸子's camera does): from behind, most motes were at its back.
+  const dc = cameraFor(dustView, conductor.time);
   const dustU = { uVP: dc.vp, uPx: dc.px, uTime: conductor.time, uDustB: .22, uFocusD: len(sub(dc.eye, dc.target)), uPalA0: conductor.pal.body };
   if (world.trails) {
     // 奇異吸子: the whole scene is a trail buffer, dust included

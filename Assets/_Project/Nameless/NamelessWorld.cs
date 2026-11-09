@@ -191,7 +191,8 @@ namespace FlowMirror.Nameless
                 dustClock = 0;
             }
             dustClock += dt;
-            float t = conductor.Time, a = t * .05f;
+            // swings across the front of the dust box instead of circling it: from behind, most motes are at its back
+            float t = conductor.Time, a = .8f * Mathf.Sin(t * .043f) + .45f * Mathf.Sin(t * .071f + 1.3f);
             var eye = new Vector3(Mathf.Sin(a) * DustOrbit, .3f * Mathf.Sin(t * .05f), Mathf.Cos(a) * DustOrbit);
             // a camera's world-to-view matrix (Unity views look down -z)
             dustView[0] = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.TRS(eye, Quaternion.LookRotation(-eye, Vector3.up), Vector3.one).inverse;
