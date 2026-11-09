@@ -275,9 +275,11 @@ void main(){
   gl_Position = cp;
   float base = .011*uPx/cp.w;
   float sz = base + abs(cp.w - uFocusD)*.012*uPx/cp.w;
+  // a third of the motes fade right out at the dip of their twinkle; the rest only dim to 70%
   float tw = .5 + .5*sin(t*(.6 + h.x*1.7) + h.z*30.);
+  tw = hash1(id*7u + 5u) < .33 ? tw : .7 + .3*tw;
   // motes right by the camera fade, so no big blot sweeps across the frame
-  float b = uDustB*(.35 + .6*pow(hash1(id*5u + 3u), 12.))*(.4 + .6*tw)*smoothstep(.5, 1.5, cp.w);
+  float b = uDustB*(.35 + .6*pow(hash1(id*5u + 3u), 12.))*tw*smoothstep(.5, 1.5, cp.w);
   float ps = clamp(sz, 1., 40.);
   gl_PointSize = ps;
   vCol = mix(vec3(.75, .8, .85), uPalA0, .15)*b*clamp(base*base/(ps*ps), .03, 1.);

@@ -69,9 +69,11 @@ Shader "FlowMirror/Nameless Dust"
                 float px = _ScreenParams.y * .5 * abs(UNITY_MATRIX_P._m11) * _FocalRatio;
                 float base = .011 * px / cp.w;
                 float sz = base + abs(cp.w - _FocusD) * .012 * px / cp.w;
+                // a third of the motes fade right out at the dip of their twinkle; the rest only dim to 70%
                 float tw = .5 + .5 * sin(t * (.6 + h.x * 1.7) + h.z * 30);
+                tw = Hash1(mote * 7u + 5u) < .33 ? tw : .7 + .3 * tw;
                 // motes right by the camera fade, so no big blot sweeps across the frame
-                float b = _DustB * (.35 + .6 * pow(Hash1(mote * 5u + 3u), 12)) * (.4 + .6 * tw) * smoothstep(.5, 1.5, cp.w);
+                float b = _DustB * (.35 + .6 * pow(Hash1(mote * 5u + 3u), 12)) * tw * smoothstep(.5, 1.5, cp.w);
                 float ps = clamp(sz, 1, 40);
                 o.pos = cp;
                 o.pos.xy += corner * ps / _ScreenParams.xy * cp.w;
