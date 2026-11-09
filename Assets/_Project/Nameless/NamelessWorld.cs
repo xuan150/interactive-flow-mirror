@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 namespace FlowMirror.Nameless
 {
@@ -70,10 +71,12 @@ namespace FlowMirror.Nameless
             particles.SetBuffer("_Pos", pos);
             particles.SetBuffer("_Vel", vel);
             Restart();
+            RenderPipelineManager.beginCameraRendering += Draw;
         }
 
         void OnDisable()
         {
+            RenderPipelineManager.beginCameraRendering -= Draw;
             pos?.Release();
             vel?.Release();
             Destroy(particles);
@@ -104,9 +107,16 @@ namespace FlowMirror.Nameless
             UpdatePresence(dt);
             Bind(dt);
             sim.Dispatch(stepKernel, Count / 256, 1, 1);
-            // this camera only: the Scene view would draw it all again
+            UpdateDust(dt);
+        }
+
+        // Drawn as the camera renders rather than in Update, so a paused Game view still shows the last frame.
+        void Draw(ScriptableRenderContext _, Camera c)
+        {
+            if (c != cam) return; // this camera only: the Scene view would draw it all again
             Graphics.RenderPrimitives(new RenderParams(particles) { worldBounds = Everywhere, camera = cam }, MeshTopology.Triangles, Count * 6);
-            DrawDust(dt);
+            dust.SetFloat("_Motes", dustCount); // here, so it matches the draw even when changed while paused
+            Graphics.RenderPrimitives(new RenderParams(dust) { worldBounds = Everywhere, camera = cam }, MeshTopology.Triangles, dustCount * 6 * TrailFrames);
         }
 
         void PlaceCamera(float t)
@@ -182,7 +192,7 @@ namespace FlowMirror.Nameless
         // remembered frames weighted by the fades since, which adds up to the same streaks. Frames are kept about every
         // 1/60 s whatever the render rate, each weighted by the time it stands for, so the streaks keep the prototype's
         // length and brightness at 30 or 144 fps alike.
-        void DrawDust(float dt)
+        void UpdateDust(float dt)
         {
             if (dustClock >= 1 / 60f)
             {
@@ -212,10 +222,8 @@ namespace FlowMirror.Nameless
             dust.SetVectorArray("_DustTW", dustTW);
             dust.SetVector("_PalA0", conductor.Pal.Body);
             dust.SetFloat("_DustB", dustBrightness);
-            dust.SetFloat("_Motes", dustCount);
             dust.SetFloat("_FocusD", eye.magnitude);
             dust.SetFloat("_FocalRatio", Mathf.Tan(cam.fieldOfView * .5f * Mathf.Deg2Rad) / Mathf.Tan(DustFov * .5f * Mathf.Deg2Rad));
-            Graphics.RenderPrimitives(new RenderParams(dust) { worldBounds = Everywhere, camera = cam }, MeshTopology.Triangles, dustCount * 6 * TrailFrames);
         }
 
         void OnGUI()
