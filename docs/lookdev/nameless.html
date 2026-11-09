@@ -257,23 +257,27 @@ void main(){
   o = vec4(c, 1.);
 }`;
 
-// Background dust: stateless motes across a deep box, out-of-focus ones grow and dim.
+// Background dust: stateless motes in a wide flat cylinder around the pivot with the camera inside, so the dust is as
+// dense at the frame's edges as behind the body (a box in front piled its far end up in the middle). Out-of-focus ones
+// grow and dim.
 const VS_DUST = HEAD + COMMON + `
 uniform mat4 uVP; uniform float uPx, uTime, uDustB, uFocusD; uniform vec3 uPalA0;
 out vec3 vCol;
 void main(){
   uint id = uint(gl_VertexID);
   vec3 h = hash3(id*11u + 17u);
-  vec3 p = vec3(h.x*16. - 8., h.y*8. - 4., -h.z*12. + 2.);
+  float ang = h.x*6.2831853, rad = 10.*sqrt(h.y);
+  vec3 p = vec3(cos(ang)*rad, h.z*12. - 6., sin(ang)*rad);
   float t = uTime;
   p += vec3(sin(t*.07 + h.y*20.), sin(t*.05 + h.z*17.)*.6, cos(t*.06 + h.x*13.))*.4;
-  p.y = mod(p.y + t*.03 + 4., 8.) - 4.;
+  p.y = mod(p.y + t*.03 + 6., 12.) - 6.;
   vec4 cp = uVP*vec4(p, 1.);
   gl_Position = cp;
   float base = .011*uPx/cp.w;
   float sz = base + abs(cp.w - uFocusD)*.012*uPx/cp.w;
   float tw = .5 + .5*sin(t*(.6 + h.x*1.7) + h.z*30.);
-  float b = uDustB*(.35 + .6*pow(hash1(id*5u + 3u), 12.))*(.4 + .6*tw);
+  // motes right by the camera fade, so no big blot sweeps across the frame
+  float b = uDustB*(.35 + .6*pow(hash1(id*5u + 3u), 12.))*(.4 + .6*tw)*smoothstep(.5, 1.5, cp.w);
   float ps = clamp(sz, 1., 40.);
   gl_PointSize = ps;
   vCol = mix(vec3(.75, .8, .85), uPalA0, .15)*b*clamp(base*base/(ps*ps), .03, 1.);
@@ -1167,17 +1171,17 @@ function loop(now) {
   world.simulate(conductor);
   const trail = .9 + .055 * conductor.sig.chaos;
   // Dust is always seen through its own camera swinging around a pivot: motes in front of and behind it slide opposite
-  // ways, which reads as deep space. Moving the whole sheet one way instead read as rain. It swings across the front of
-  // the dust box instead of circling it (as 奇異吸子's camera does): from behind, most motes were at its back.
-  const dc = cameraFor(dustView, conductor.time);
+  // ways, which reads as deep space. Moving the whole sheet one way instead read as rain. It swings to and fro at no
+  // steady rate instead of circling (as 奇異吸子's camera does).
+  const dc = cameraFor(dustView, conductor.time), motes = 10000; // about a third are in view at a time
   const dustU = { uVP: dc.vp, uPx: dc.px, uTime: conductor.time, uDustB: .22, uFocusD: len(sub(dc.eye, dc.target)), uPalA0: conductor.pal.body };
   if (world.trails) {
     // 奇異吸子: the whole scene is a trail buffer, dust included
     bindTarget(scene); fade(trail);
-    world.draw(conductor); drawPoints(P.dust, 2500, dustU);
+    world.draw(conductor); drawPoints(P.dust, motes, dustU);
   } else {
     // the body is drawn sharp every frame; the dust keeps its own short trail underneath, so it streaks the same way
-    bindTarget(dustRt); fade(trail); drawPoints(P.dust, 2500, dustU);
+    bindTarget(dustRt); fade(trail); drawPoints(P.dust, motes, dustU);
     bindTarget(scene); fade(0);
     world.draw(conductor);
     use(P.copy, { uSrc: 0 }, [dustRt.tex]); draw3();

@@ -1,5 +1,5 @@
 // Background dust, seen through its own camera slowly swinging around a pivot: motes in front of and behind the pivot
-// slide opposite ways, which reads as deep space. Stateless motes in a deep box; out-of-focus
+// slide opposite ways, which reads as deep space. Stateless motes in a wide flat cylinder; out-of-focus
 // ones grow and dim. Ported from docs/lookdev/nameless.html (VS_DUST).
 //
 // The prototype faded a dust buffer by k each frame instead of clearing it, so motes streak. Here each mote is drawn
@@ -56,10 +56,13 @@ Shader "FlowMirror/Nameless Dust"
                 if (_DustTW[s].y < 1e-3) return o;
 
                 float t = _DustTW[s].x;
+                // a flat cylinder around the pivot with the camera inside, so the dust is as dense at the frame's edges as
+                // behind the body, whatever way the camera faces (a box in front of it piled its far end up in the middle)
                 float3 h = Hash3(mote * 11u + 17u);
-                float3 p = float3(h.x * 16 - 8, h.y * 8 - 4, -h.z * 12 + 2);
+                float ang = h.x * 6.2831853, rad = 10 * sqrt(h.y);
+                float3 p = float3(cos(ang) * rad, h.z * 12 - 6, sin(ang) * rad);
                 p += float3(sin(t * .07 + h.y * 20), sin(t * .05 + h.z * 17) * .6, cos(t * .06 + h.x * 13)) * .4;
-                p.y = Mod(p.y + t * .03 + 4, 8) - 4;
+                p.y = Mod(p.y + t * .03 + 6, 12) - 6;
                 // through this camera's projection (so its flip and depth range apply), widened to the dust lens
                 float4 cp = mul(UNITY_MATRIX_P, mul(_DustView[s], float4(p, 1)));
                 cp.xy *= _FocalRatio;
@@ -67,7 +70,8 @@ Shader "FlowMirror/Nameless Dust"
                 float base = .011 * px / cp.w;
                 float sz = base + abs(cp.w - _FocusD) * .012 * px / cp.w;
                 float tw = .5 + .5 * sin(t * (.6 + h.x * 1.7) + h.z * 30);
-                float b = _DustB * (.35 + .6 * pow(Hash1(mote * 5u + 3u), 12)) * (.4 + .6 * tw);
+                // motes right by the camera fade, so no big blot sweeps across the frame
+                float b = _DustB * (.35 + .6 * pow(Hash1(mote * 5u + 3u), 12)) * (.4 + .6 * tw) * smoothstep(.5, 1.5, cp.w);
                 float ps = clamp(sz, 1, 40);
                 o.pos = cp;
                 o.pos.xy += corner * ps / _ScreenParams.xy * cp.w;

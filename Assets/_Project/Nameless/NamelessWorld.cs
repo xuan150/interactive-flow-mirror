@@ -22,8 +22,8 @@ namespace FlowMirror.Nameless
         [SerializeField] bool mouseIsViewer = true;
         [Tooltip("Shows the event and the form in the corner (the prototype's 顯示事件).")]
         [SerializeField] bool showStatus;
-        [Tooltip("Background dust motes. Each is drawn once per remembered trail frame, so many cost; the prototype had 2500.")]
-        [SerializeField, Range(500, 12000)] int dustCount = 2500;
+        [Tooltip("Background dust motes; about a third are in view at a time. Each is drawn once per remembered trail frame, so many cost.")]
+        [SerializeField, Range(1000, 20000)] int dustCount = 10000;
         [Tooltip("Background dust brightness; the brightest motes reach the bloom first. .28 matches the prototype's .22 through URP's ACES.")]
         [SerializeField, Range(0, 1)] float dustBrightness = .28f;
         [SerializeField] ComputeShader sim;
@@ -194,7 +194,7 @@ namespace FlowMirror.Nameless
                 dustClock = 0;
             }
             dustClock += dt;
-            // swings across the front of the dust box instead of circling it: from behind, most motes are at its back
+            // swings to and fro at no steady rate instead of circling
             float t = conductor.Time, a = .8f * Mathf.Sin(t * .043f) + .45f * Mathf.Sin(t * .071f + 1.3f);
             var eye = new Vector3(Mathf.Sin(a) * DustOrbit, .3f * Mathf.Sin(t * .05f), Mathf.Cos(a) * DustOrbit);
             // a camera's world-to-view matrix (Unity views look down -z)
