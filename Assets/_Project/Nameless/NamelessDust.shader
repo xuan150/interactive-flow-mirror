@@ -5,6 +5,10 @@
 // The prototype faded a dust buffer by k each frame instead of clearing it, so motes streak. Here each mote is drawn
 // once per remembered frame (newest first) with that frame's camera and time, weighted by the fades since: the same
 // sum, without a buffer. _TrailFrames must match NamelessWorld.TrailFrames.
+//
+// URP's ACES crushes the dim end that the prototype's tonemap kept (scene .01 shows as 7/255 here, 20/255 there), and
+// most motes are dim, out-of-focus discs. So their floor is doubled (.03 to .06), and NamelessWorld's dustBrightness
+// defaults to .28 instead of .22; together they land the dust where the prototype showed it.
 Shader "FlowMirror/Nameless Dust"
 {
     SubShader
@@ -67,7 +71,7 @@ Shader "FlowMirror/Nameless Dust"
                 float ps = clamp(sz, 1, 40);
                 o.pos = cp;
                 o.pos.xy += corner * ps / _ScreenParams.xy * cp.w;
-                o.col = lerp(float3(.75, .8, .85), _PalA0.rgb, .15) * b * clamp(base * base / (ps * ps), .03, 1) * _DustTW[s].y;
+                o.col = lerp(float3(.75, .8, .85), _PalA0.rgb, .15) * b * clamp(base * base / (ps * ps), .06, 1) * _DustTW[s].y;
                 return o;
             }
 

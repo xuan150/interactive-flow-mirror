@@ -24,8 +24,8 @@ namespace FlowMirror.Nameless
         [SerializeField] bool showStatus;
         [Tooltip("Background dust motes. Each is drawn once per remembered trail frame, so many cost; the prototype had 2500.")]
         [SerializeField, Range(500, 12000)] int dustCount = 2500;
-        [Tooltip("Background dust brightness; the brightest motes reach the bloom first. The prototype had .22.")]
-        [SerializeField, Range(0, 1)] float dustBrightness = .22f;
+        [Tooltip("Background dust brightness; the brightest motes reach the bloom first. .28 matches the prototype's .22 through URP's ACES.")]
+        [SerializeField, Range(0, 1)] float dustBrightness = .28f;
         [SerializeField] ComputeShader sim;
         [SerializeField] Shader particleShader, dustShader;
 
