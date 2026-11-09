@@ -1,6 +1,6 @@
 # The nameless world reads presences only
 
-Status: proposed, side by side with [ADR 0001](0001-visuals-read-person-buffer-and-id-mask.md). The two describe two directions that are both kept so they can be compared before one is chosen; neither supersedes the other yet.
+Status: accepted 2026-11-09, supersedes [ADR 0001](0001-visuals-read-person-buffer-and-id-mask.md). The nameless world is the main direction; the figure and light-veil direction of ADR 0001 (sketches 01–09 and the veil's notice work) is parked.
 
 The nameless world (無名之物, look-dev approved 2026-11-06, prototype in [docs/lookdev/nameless.html](../lookdev/nameless.html)) never draws a viewer. Its visual layer reads only a presence per viewer: a line of sight (origin and direction), the point where that line meets the plane through the body, a strength that eases in and out, and the seconds they have stayed. The body parts around the line of sight and a loose band of particles streams after the point, more of it the longer they stay. No ID mask and no silhouette exist on this side. The creature and the shell are one stateful particle set in one GPU simulation: each frame a target pulls the particles in (the creature's metaball surface, the shell's deformed sphere, or a blend while one kind turns into the other), and a pure C# conductor decides, irregularly, when and how the world changes.
 
