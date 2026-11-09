@@ -118,7 +118,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 2026-11-06 從零開始的看樣，2026-11-09 定為主要方向，上面的「身影＋光紗」方向擱置（[ADR 0002](adr/0002-nameless-world-reads-presences-only.md) 取代 0001）。用詞見 [GLOSSARY](../GLOSSARY.md) 的「無名之物」一節。
 
 - **是什麼**：全部由粒子構成、自己不規則變化的世界。形體在生物與殼之間變換，人進來不畫出人形，只用視線推開形體、讓追隨粒子跟著人；背景是帶殘影的塵埃
-- **參考答案**：網頁原型 [docs/lookdev/nameless.html](lookdev/nameless.html)（用瀏覽器開；合體為預設，「顯示事件」看事件與形態，「滑鼠＝有人」模擬觀眾）。看樣過程與使用者的取捨記在這次對話的記憶裡，重點已寫進 ADR 0002
+- **參考答案**：網頁原型 [docs/lookdev/nameless.html](lookdev/nameless.html)（用瀏覽器開；合體為預設，「顯示事件」看事件與形態，「滑鼠＝有人」模擬觀眾）。看樣時的取捨重點寫在 ADR 0002
 - **Unity**：`Scenes/Nameless.unity`，程式在 `Assets/_Project/Nameless/`。一群約 20 萬顆的粒子用 compute shader 模擬、自訂 shader 畫成點；節奏由純 C# 的指揮（Conductor）決定，有 EditMode 測試
 - **還沒做**：多位觀眾（目前一位，滑鼠）；效能在使用者電腦上的實測
 
