@@ -3,7 +3,7 @@
 **目標**：人進場時盪開一圈漣漪、移動時拖出波紋；多個波相遇時干涉。
 **架構位置**：場層（第一次有「記憶」的場）＋渲染層。
 **前置**：03
-**參考**：[lines-ridge-bump](../refs/lines-ridge-bump.png)
+**參考**：[lines-ridge-bump](../ROADMAP.md#參考圖)
 
 ## 概念：有記憶的場
 
@@ -114,7 +114,7 @@ Play：點空白新增人，一圈波從他身上盪開、經過的線上下起�
 - 進場漣漪的觸發方式（真人從邊緣走進來）→ 組合前討論，見 ROADMAP
 - 點子池「幽靈訪客」「抬手」「集體共振」現在都做得到了：往 `RippleField.AddSource` 丟波源即可
 
-**給 05 Silhouette 的接點**（新對話開始時先討論，不要直接照做）
+**給 05 Silhouette 的接點**（開始前先討論，不要直接照做）
 - 「C# 產生一張 RT → `vfx.SetTexture` → HLSL 用 `VFXSampler2D` 以原位取樣」這條路 04 已經打通，05 的 ID 遮罩可照抄：`SampleTexture(tex, rest / float2(20, 10) + 0.5, 0)`（Update 是 compute，必須指定 mip 0）
 - 畫面範圍 20×10 現在寫死在兩處：`RippleField.Area` 和 `Vortex.hlsl`；05 若再多一處，考慮收成一個共用值
 - 照 ADR 0001，滑鼠假人要把剪影貼圖**蓋印**到 ID 遮罩（每像素 = 人的 index + 1）

@@ -3,7 +3,7 @@
 **目標**：滑鼠假人捲動線條，每個人周圍的線被扭成漩渦。
 **架構位置**：輸入層＋人物狀態層＋渲染層（第一次跨層）。
 **前置**：02b
-**參考**：[lines-vortex-orbit](../refs/lines-vortex-orbit.png)、[person-silhouette-rim](../refs/person-silhouette-rim.png)
+**參考**：[lines-vortex-orbit](../ROADMAP.md#參考圖)、[person-silhouette-rim](../ROADMAP.md#參考圖)
 
 ## 概念：資料從 C# 流進 VFX
 
@@ -149,7 +149,7 @@ v2 的「往內流」其實是扭轉強度一緊一鬆，看起來像把線擰�
 
 ### ③+++ 黑洞核心（v4）
 
-使用者的判斷：中心要**變暗、吞掉線**，光流進去才像被吃掉；也呼應「人是黑色剪影」（05）。
+我的判斷：中心要**變暗、吞掉線**，光流進去才像被吃掉；也呼應「人是黑色剪影」（05）。
 
 第一版「越近越暗、到中心才是 0」不夠黑：暗區和光暈最強的地方重疊，亮度 (1 + glow × w) 把暗抵消掉，加上 Bloom 把周圍的光暈進洞裡。
 改成**實心黑盤＋外圈漸變**，光暈的峰值被推到黑盤外緣，自然成為一圈亮環（像吸積盤圍著事件視界）：
@@ -180,9 +180,9 @@ hole  = Π smoothstep(coreRadius, coreRadius + coreSoftness, 距離)   ← 每�
 - 待機起伏 range：graph 裡有一個 noise range 已是 (-0.3, 0.3)，但沒確認它就是起伏用的那個
 - 黑洞若還是不夠「被吞掉」：疊一層真的往中心掉的粒子（點子池：發光細絲）
 
-**溝通備忘**：使用者的 Output 用「用值查漸層」配方（值接漸層 Sample Time），兩個漸層 Block 都是 Composition Multiply、Color Mode Color；Update 寫進 `color` 的亮度會被乘上去。改 Output 前先讀 .vfx 確認。
+**備忘**：我的 Output 用「用值查漸層」配方（值接漸層 Sample Time），兩個漸層 Block 都是 Composition Multiply、Color Mode Color；Update 寫進 `color` 的亮度會被乘上去。改 Output 前先讀 .vfx 確認。
 
-**給 04 Ripple 的接點**（新對話開始時先討論，不要直接照做）
+**給 04 Ripple 的接點**（開始前先討論，不要直接照做）
 - 位置現在**全由 `Vortex.hlsl` 寫入**（Set Position 已刪）。漣漪高度要嘛當成 HLSL 的新輸入（和 `wave` 一樣加在 y），要嘛在 HLSL Block 後面再加一個 Add Position
 - 漣漪的波源是「進場」與「移動」：PersonTracker 已有 Add / Move / velocity，可以從這裡把事件交給漣漪場
 - ROADMAP 寫 04 可獨立先做：可以從 02b 場景複製，先只用滑鼠點擊當波源，驗證波動方程後再接 03 的人

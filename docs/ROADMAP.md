@@ -1,6 +1,6 @@
 # Roadmap
 
-> 任何時候（新對話、compact 後、跳著做）都從這份開始對照。
+> 任何時候（中斷後回來、跳著做）都從這份開始對照。
 
 ## 構想
 
@@ -43,13 +43,13 @@ Assets/_Project/
   Idle/                               ← 待機光紗（VFX、HLSL、IdleMirror），場景物件在 Main
   Nameless/                           ← 無名之物（compute、shader、C#），場景是 Scenes/Nameless.unity
   Scenes/Main.unity
-  Scenes/Sketches/Sketch_0X_*/        ← 教學用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
+  Scenes/Sketches/Sketch_0X_*/        ← 練習用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
 docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開始做那張時才寫）
 ```
 
 ## 素描本進度
 
-每張 30–60 分鐘出畫面，原理用到再講。每張結束時對照上方架構圖說明它屬於哪一層。
+每張 30–60 分鐘出畫面，原理用到再學。每張結束時對照上方架構圖，確認它屬於哪一層。
 
 | | # | Sketch | 學到什麼 | 成果 | 前置 | 文件 |
 |---|---|---|---|---|---|---|
@@ -72,13 +72,13 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 
 ## 目標畫面（草案，看樣後定案）
 
-2026-10-27 腦力激盪的結論。看樣做完後**回到那次腦力激盪的對話**挑勝出者，再接 `/to-spec` → `/to-tickets`。
+2026-10-27 腦力激盪的結論。看樣做完後**回到那次腦力激盪的結論**挑勝出者，再寫成規格、拆成工作項目。
 
 **情緒核心**：相遇為主、好玩為輔。任何時候畫面只有一個主角：身影。
 
 ### 三個候選共用
 
-- **背景**：極淡、細密的流線（[參考](refs/lines-fog-cursor.png)），緩慢起伏、呼吸，不能完全靜止
+- **背景**：極淡、細密的流線（參考圖 [lines-fog-cursor](#參考圖)），緩慢起伏、呼吸，不能完全靜止
 - **身影**：好幾條光絲像辮子一樣疊著包覆輪廓，加上不成圈的亂絲；慢慢長成，不突然出現
 - **色彩**：獨處時近乎無色（銀白、淡金）；每人有隱藏的本色，交會時才被照出（沿用 06 的本色／帶著的顏色）。調色盤集中在 `PersonTracker.Palette` 一處，之後要對主視覺配色只改這裡
 - **動作語彙**：靜止 → 光絲收緊編齊、流光沿絲繞行；移動 → 光絲被甩在後面鬆成飄帶、亂絲變多；快速 → 部分光絲甩斷、淡掉
@@ -101,7 +101,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 2. **07a–c 身影看樣**：只比身影。走位含待機、單人進場／靜止／移動、兩人交會與分開、多人（[07 的走位表](sketches/07-prep.md#走位輸入層)）。各 1–2 小時、拋棄式，從 `Scenes/Main.unity` 複製，錄全段走位（約 47 秒，螢幕錄影）
 3. **08 大理石紋看樣**：流體只平流，獨立一張（三個候選共用，不放進比較）
 
-**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條 `prototype/lookdev` 分支（從 07 完成後的 main 開），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。session 可以同時開著討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每個 session 只 commit 自己的資料夾。
+**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條看樣分支（從 07 完成後的 main 開，現封存為 `archive/lookdev`），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。四張可以同時討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每張只 commit 自己的資料夾。
 
 **評分標準**（影片並排看）：① 構築感：身影成形的過程美不美 ② 交會可讀性：一眼看得出兩人之間有連結 ③ 獨處撐不撐得住 ④ 待機（沒有身影）會不會單調 ⑤ 多人時會不會雜亂
 
@@ -120,7 +120,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 - **是什麼**：全部由粒子構成、自己不規則變化的世界。形體在生物與殼之間變換，人進來不畫出人形，只用視線推開形體、讓追隨粒子跟著人；背景是帶殘影的塵埃
 - **參考答案**：網頁原型 [docs/lookdev/nameless.html](lookdev/nameless.html)（用瀏覽器開；合體為預設，「顯示事件」看事件與形態，「滑鼠＝有人」模擬觀眾）。看樣時的取捨重點寫在 ADR 0002
 - **Unity**：`Scenes/Nameless.unity`，程式在 `Assets/_Project/Nameless/`。一群約 20 萬顆的粒子用 compute shader 模擬、自訂 shader 畫成點；節奏由純 C# 的指揮（Conductor）決定，有 EditMode 測試
-- **還沒做**：多位觀眾（目前一位，滑鼠）；效能在使用者電腦上的實測
+- **還沒做**：多位觀眾（目前一位，滑鼠）；效能實測
 
 ## 數學積木
 
@@ -128,16 +128,16 @@ Operator 的積木、配方與學習資源：[vfx-math-cheatsheet](vfx-math-chea
 
 ## 參考圖
 
-存在 [docs/refs/](refs/)，做的時候對照。
+做的時候對照的參考圖。都是 Pinterest、Shadertoy 等網站上他人作品的截圖，只留文字描述，圖不公開。
 
 | 圖 | 是什麼 | 對應 |
 |---|---|---|
-| [lines-wave-vertical](refs/lines-wave-vertical.png) | 平行線整片緩慢起伏 | 02b 待機 |
-| [lines-ridge-bump](refs/lines-ridge-bump.png) | 平行線被推出一道隆起 | 05 身影、04 漣漪 |
-| [lines-vortex-orbit](refs/lines-vortex-orbit.png) | 線條繞著中心旋成軌道 | 03 漩渦、06 交會 |
-| [particles-filaments-purple](refs/particles-filaments-purple.png) | 大量細小粒子擠在流場匯聚處，成為發光細絲 | 點子池 |
-| [person-silhouette-rim](refs/person-silhouette-rim.png) | 黑色人形剪影，線條繞著身體流動，邊緣最亮 | 05 身影、人的呈現 |
-| [lines-fog-cursor](refs/lines-fog-cursor.png) | 細密低亮度的線＋背後的彩色霧團，游標處局部纏繞 | 最終樣貌腦力激盪 |
+| lines-wave-vertical | 平行線整片緩慢起伏 | 02b 待機 |
+| lines-ridge-bump | 平行線被推出一道隆起 | 05 身影、04 漣漪 |
+| lines-vortex-orbit | 線條繞著中心旋成軌道 | 03 漩渦、06 交會 |
+| particles-filaments-purple | 大量細小粒子擠在流場匯聚處，成為發光細絲 | 點子池 |
+| person-silhouette-rim | 黑色人形剪影，線條繞著身體流動，邊緣最亮 | 05 身影、人的呈現 |
+| lines-fog-cursor | 細密低亮度的線＋背後的彩色霧團，游標處局部纏繞 | 最終樣貌腦力激盪 |
 
 ## 點子池
 
@@ -145,7 +145,7 @@ Operator 的積木、配方與學習資源：[vfx-math-cheatsheet](vfx-math-chea
 
 - **辮子（意外發現）**：拔掉「原位 y」，讓 `y = 起伏 noise × 權重`。平靜區所有線疊成**一條線**，起伏區因為 noise 仍用各自原位 y 取樣而**散開交織成一束辮子**，再收回一條。「一條線分岔、交會、收束」。保存在 `Assets/_Project/VFX/Ideas/Idea_Braid.vfx`（02b 數值＋20 條線）；圖：[graph](refs/ideas/braid-graph.png)、[成果](refs/ideas/braid-result.png)
   - 可能用法：待機時一條線，有人進場時從他身上分岔成辮子；或兩人交會時兩束辮子纏在一起
-- **發光細絲**（[參考](refs/particles-filaments-purple.png)）：幾十萬顆極小、半透明粒子被流場推著，擠在匯聚處的就疊加成亮絲。Sketch 01 Frequency 調高時「粒子被困住」就是雛形。可用在交會（兩人之間長出細絲）或痕跡（走過處沉澱成紋路再散開）
+- **發光細絲**（參考圖 [particles-filaments-purple](#參考圖)）：幾十萬顆極小、半透明粒子被流場推著，擠在匯聚處的就疊加成亮絲。Sketch 01 Frequency 調高時「粒子被困住」就是雛形。可用在交會（兩人之間長出細絲）或痕跡（走過處沉澱成紋路再散開）
 - **幽靈訪客**：待機時偶爾在隨機位置冒出一圈很淡的漣漪，像剛有人經過（需要 04 漣漪場）
 - **牽線**：距離夠近的兩人之間長出細線，走遠時拉長、變細、斷掉
 - **抬手**：送出較大的漣漪（假人用右鍵模擬）
