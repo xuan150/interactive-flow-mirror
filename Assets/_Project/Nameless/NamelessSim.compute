@@ -1,0 +1,232 @@
+// 無名生物 and 有機殼: one set of stateful particles with inertia, pulled each frame onto a target surface: the
+// creature's metaball field, the shell's deformed sphere, or a blend of the two while one kind turns into the other.
+// Ported from docs/lookdev/nameless.html (FS_LIFE_SIM). _Pos.w = role (fixed per particle), _Vel.w = extra light.
+#pragma kernel Init
+#pragma kernel Step
+
+#include "NamelessCommon.hlsl"
+
+RWStructuredBuffer<float4> _Pos, _Vel;
+uint _Count;
+float _Dt, _WorldTime;
+float4 _BA[8], _BB[8], _TA0[4], _TA1[4], _TB0[4], _TB1[4]; // creature: must match Form.Blobs/T0/T1
+float4 _LA[5], _LB[5], _FA[2], _FB[2], _SA[3], _SB[3];     // shell: must match Form.Lobes/Folds/Shape
+float3 _Center;
+float4x4 _Rot;
+float _Scale;
+float _M, _Chaos, _Tension, _Collapse, _Burst, _Sweep, _Spread, _Dwell, _Peel, _ShellA, _ShellB;
+float3 _SweepAxis, _PresO, _PresD, _PeelAxis;
+float4 _Pres; // xyz: where the viewer's line of sight meets the body's plane, w: presence strength
+
+static float4 gB[8];
+static float4 gT0[4];
+static float4 gT1[4];
+static float3 gPO, gPD;
+static float gDent;
+
+float FieldLog(float3 q)
+{
+    float f = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        float r = gB[i].w;
+        if (r <= 0) continue;
+        float3 d = q - gB[i].xyz;
+        f += r * r / (dot(d, d) + 1e-4);
+    }
+    for (int j = 0; j < 4; j++)
+    {
+        float r = gT0[j].w;
+        if (r <= 0) continue;
+        float k = r * r / (SegD2(q, gT0[j].xyz, gT1[j].xyz) + 1e-4);
+        f += k * k;
+    }
+    // someone in front parts the body: the field thins around their line of sight, so the surface opens around them
+    if (gDent > 0)
+    {
+        float3 e = q - gPO;
+        e -= gPD * dot(e, gPD);
+        f *= 1 - gDent * exp(-dot(e, e) / .16);
+    }
+    // wobble only near the surface; far out it would carve false bumps that trap particles in clumps
+    float lf = log(max(f, 1e-4));
+    return lf + .3 * SNoise(q * 1.4 + float3(0, _WorldTime * .16, _WorldTime * .1)) * smoothstep(-3, -.5, lf);
+}
+
+// Shell radius along direction d. Lobes swing and swell slowly, so a held shell keeps breathing; glow is how much the
+// spot lights up (fold crests, lobe tips).
+float ShellR(float3 d, float4 L[5], float4 Fo[2], float4 S[3], out float glow)
+{
+    float r = 1, ridge = 0, tip = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        float k = length(L[i].xyz);
+        if (k < 1e-3) continue;
+        float fi = i;
+        float3 ax = normalize(L[i].xyz / k + .3 * float3(sin(_WorldTime * .11 + fi * 1.7), sin(_WorldTime * .13 + fi * 2.9), cos(_WorldTime * .09 + fi * .7)));
+        float l = pow(max(dot(d, ax), 0), k);
+        r += L[i].w * (1 + .35 * sin(_WorldTime * (.19 + .04 * fi) + fi * 2.3)) * l;
+        tip = max(tip, l * step(0, L[i].w));
+    }
+    for (int j = 0; j < 2; j++)
+    {
+        if (Fo[j].w <= 0) continue;
+        float s = sin(dot(d, Fo[j].xyz) * 3.14159 + _WorldTime * .35 + j * 1.7);
+        r += Fo[j].w * s;
+        ridge = max(ridge, pow(s * .5 + .5, 10));
+    }
+    r += S[2].y * SNoise(d * S[2].z + float3(_WorldTime * .06, _WorldTime * .045, -_WorldTime * .05));
+    r *= lerp(1, S[2].x, smoothstep(S[1].w, S[1].w + .3, dot(d, S[1].xyz)));
+    glow = ridge * 2.2 + tip * 1.6;
+    return r;
+}
+
+// rotate xz by a*p.y (GLSL mat2(c, -s, s, c) * p.xz)
+float3 Twist(float3 p, float a)
+{
+    float c = cos(a * p.y), s = sin(a * p.y);
+    return float3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
+}
+
+// A particle's home on the shell, from its own direction d. Ridge particles slide onto the nearest crest of a fold, so
+// crests read as glowing lines drifting over the surface. lay: (thickness layer, radius factor).
+float3 ShellTarget(float3 d, float4 L[5], float4 Fo[2], float4 S[3], int snap, float2 lay, out float glow)
+{
+    float tw = S[0].w + .4 * sin(_WorldTime * .15 + 1.1);
+    if (snap >= 0)
+    {
+        int fi = (snap == 1 && Fo[1].w > 0) ? 1 : 0;
+        float qn = length(Fo[fi].xyz);
+        if (qn > 1e-3)
+        {
+            float3 a = Fo[fi].xyz / qn;
+            float ph = _WorldTime * .35 + fi * 1.7;
+            float k = floor((dot(d, a) * qn * 3.14159 + ph - 1.5708) / 6.28318 + .5);
+            float c = (1.5708 + k * 6.28318 - ph) / (qn * 3.14159);
+            float3 t = d - a * dot(d, a);
+            float tl = length(t);
+            if (abs(c) < .98 && tl > 1e-4) d = a * c + t / tl * sqrt(1 - c * c);
+        }
+    }
+    float r = ShellR(d, L, Fo, S, glow) * (1 + lay.x * S[2].w) * lay.y;
+    return Twist(d * r, tw) * S[0].xyz;
+}
+
+[numthreads(256, 1, 1)]
+void Init(uint3 tid : SV_DispatchThreadID)
+{
+    uint id = tid.x;
+    if (id >= _Count) return;
+    float3 h = Hash3(id * 3u + 1u);
+    float z = h.x * 2 - 1, a = h.y * 6.2831853, r = sqrt(1 - z * z);
+    _Pos[id] = float4(_Center + float3(r * cos(a), z, r * sin(a)) * pow(h.z, .33) * 2.2, Hash1(id * 7u + 11u));
+    _Vel[id] = 0;
+}
+
+[numthreads(256, 1, 1)]
+void Step(uint3 tid : SV_DispatchThreadID)
+{
+    uint id = tid.x;
+    if (id >= _Count) return;
+    float4 P = _Pos[id], V = _Vel[id];
+    float role = P.w;
+    float3x3 R = (float3x3)_Rot, iR = transpose(R);
+    float3 loc = mul(iR, P.xyz - _Center) / _Scale;
+    float mi = _M, front = 0;
+    if (_Sweep > -5)
+    {
+        float x = _Sweep - (dot(loc, _SweepAxis) * .5 + .5);
+        mi = smoothstep(-.12, .12, x);
+        front = exp(-x * x / .008);
+    }
+    float sw = lerp(_ShellA, _ShellB, mi); // how much of a shell this spot is; 0 = creature
+    // the person's line of sight, in body space
+    gDent = .93 * _Pres.w;
+    gPO = mul(iR, _PresO - _Center) / _Scale;
+    gPD = mul(iR, _PresD);
+    float3 stepC = 0, nC = 0, stepS = 0, nS = 0;
+    if (sw < .999)
+    {
+        // radii blend through r^2 so the total mass holds steady mid-morph instead of shrinking to a dot
+        for (int i = 0; i < 8; i++)
+            gB[i] = float4(lerp(_BA[i].xyz, _BB[i].xyz, mi), sqrt(lerp(_BA[i].w * _BA[i].w, _BB[i].w * _BB[i].w, mi)));
+        for (int j = 0; j < 4; j++)
+        {
+            gT0[j] = float4(lerp(_TA0[j].xyz, _TB0[j].xyz, mi), sqrt(lerp(_TA0[j].w * _TA0[j].w, _TB0[j].w * _TB0[j].w, mi)));
+            float4 e = lerp(_TA1[j], _TB1[j], mi);
+            float fj = j;
+            gT1[j] = float4(e.xyz + e.w * .28 * float3(sin(_WorldTime * 1.3 + fj * 2.1), sin(_WorldTime * 1.07 + fj * 3.7), cos(_WorldTime * .83 + fj * 1.3)), 0);
+        }
+        float iso = role < .1 ? 1.1 : (role > .99 ? -.45 : 0);
+        const float h = .012;
+        const float2 k = float2(1, -1);
+        float f0 = FieldLog(loc);
+        float3 gr = (k.xyy * FieldLog(loc + k.xyy * h) + k.yyx * FieldLog(loc + k.yyx * h) + k.yxy * FieldLog(loc + k.yxy * h) + k.xxx * FieldLog(loc + k.xxx * h)) / (4 * h);
+        float g2 = dot(gr, gr) + 1e-4;
+        stepC = -(f0 - iso) * gr / g2;
+        nC = gr * rsqrt(g2);
+    }
+    float glow = 0;
+    if (sw > .001)
+    {
+        // Each particle keeps a fixed home direction, so the skin stays evenly spread and its outline crisp (the hard
+        // shell); left free to flow like the creature's, it wrinkled into folds. Sparks circle the body instead.
+        float3 hd = Hash3(id * 7u + 1u);
+        float z = hd.x * 2 - 1, a = hd.y * 6.2831853 + (role > .99 ? _WorldTime * (.3 + .5 * hd.z) : 0), rr = sqrt(1 - z * z);
+        float3 d = float3(rr * cos(a), z, rr * sin(a));
+        int snap = role > .7 && role < .82 ? 0 : (role >= .82 && role < .88 ? 1 : -1);
+        // the creature's layers: a bright core inside, sparks outside
+        float2 lay = float2(snap >= 0 ? 0 : Hash1(id * 17u + 2u) * 2 - 1, role < .1 ? .62 : (role > .99 ? 1.25 : 1));
+        float ga, gb;
+        float3 t = lerp(ShellTarget(d, _LA, _FA, _SA, snap, lay, ga), ShellTarget(d, _LB, _FB, _SB, snap, lay, gb), mi);
+        glow = lerp(ga, gb, mi) * sw;
+        // someone in front parts the shell as they part the creature: skin near their line of sight moves off it
+        float3 e = t - gPO;
+        e -= gPD * dot(e, gPD);
+        t += normalize(e + 1e-4) * .55 * _Pres.w * exp(-dot(e, e) / .16);
+        stepS = t - loc;
+        nS = normalize(loc + 1e-4);
+    }
+    float3 stepL = lerp(stepC, stepS, sw);
+    float sl = length(stepL);
+    if (sl > 1.2) stepL *= 1.2 / sl;
+    float3 nW = mul(R, normalize(lerp(nC, nS, sw) + 1e-5));
+    // 剝落 (shells): a patch of skin lets go, lifts off as smoke and flows back
+    float pm = _Peel * sw * smoothstep(.45, .8, dot(normalize(loc + 1e-4), _PeelAxis));
+
+    // a weak tether survives the smoke so the cloud billows around the body instead of leaving the frame
+    float hold = (1 - .93 * _Chaos) * (1 - .85 * pm), col = max(_Collapse, 0);
+    float3 acc = mul(R, stepL) * _Scale * 42 * hold * (1 - min(col, 1));
+    float3 c = Curl(P.xyz * .85 + float3(0, _WorldTime * .11, _WorldTime * .05));
+    acc += (c - nW * dot(c, nW)) * (.22 + (role > .99 ? 1.2 : 0) + front * 2.5) * hold;
+    acc += (c * 2.6 + nW * 1.2) * pm;
+    if (_Chaos > .001)
+        acc += (Curl(P.xyz * (.6 - .2 * _Spread) + float3(_WorldTime * .19, -_WorldTime * .07, 0)) * (2.4 + 1.6 * _Spread) + float3(0, .25 + .25 * _Spread, 0)) * _Chaos;
+    // the creature shivers through its particles; on the shell this shredded the skin, so the shell trembles in drawing only
+    if (_Tension > .001) acc += NVec(P.xyz * 5 + _WorldTime * 13) * 26 * _Tension * (1 - sw);
+    float3 toC = _Center - P.xyz;
+    acc += toC * 30 * col + cross(mul(R, float3(0, 1, 0)), toC) * 7 * col;
+    // After a collapse every particle sits on one point. A shared outward push (or the body's own pull, from inside)
+    // keeps them clumped into knots and lines for the whole next hold, so each bursts its own way, past the surface,
+    // and the new body gathers them back in from outside.
+    acc += (normalize(normalize(-toC + 1e-4) + (Hash3(id * 11u + 3u) - .5) * 2) * 42 + c * 8) * _Burst;
+    float damp = lerp(lerp(6.5, 1.8, _Chaos) + 2 * col, 1.8, pm);
+    // A loose band leaves the body and streams after the person; the longer they stay, the more of it follows.
+    if (role > .94 && role < .99 && _Pres.w > .01)
+    {
+        float band = (role - .94) / .05, chase = _Pres.w * smoothstep(band, band + .15, _Dwell);
+        float3 toP = _Pres.xyz + (Hash3(id * 5u + 9u) - .5) * .3 - P.xyz;
+        acc = lerp(acc, toP * 9 + Curl(P.xyz * 1.2 + float3(0, _WorldTime * .23, _WorldTime * .11)) * .6 + cross(_PresD, toP) * 2.5, chase);
+        damp = lerp(damp, 2.4, chase);
+    }
+    V.xyz = V.xyz * exp(-damp * _Dt) + acc * _Dt;
+    P.xyz += V.xyz * _Dt;
+    V.w = glow + pm * 1.5; // extra light for the drawing pass
+    if (any(isnan(P.xyz)) || any(isinf(P.xyz)) || any(isnan(V)))
+    {
+        P.xyz = _Center + Hash3(id + uint(_WorldTime * 97)) - .5;
+        V = 0;
+    }
+    _Pos[id] = P;
+    _Vel[id] = V;
+}
