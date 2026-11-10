@@ -43,3 +43,9 @@ graphify-out/
 # Third-party reference videos and the user's own screen recordings for sketch 09: kept local, not published
 /docs/refs/idle/*.mp4
 /docs/refs/idle/*.webm
+
+# Third-party inspiration screenshots (Pinterest, Shadertoy): kept local, not published
+/docs/refs/local/
+
+# Local AI tool settings: only CLAUDE.md is published
+/docs/agents/
