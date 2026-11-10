@@ -101,7 +101,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 2. **07a–c 身影看樣**：只比身影。走位含待機、單人進場／靜止／移動、兩人交會與分開、多人（[07 的走位表](sketches/07-prep.md#走位輸入層)）。各 1–2 小時、拋棄式，從 `Scenes/Main.unity` 複製，錄全段走位（約 47 秒，螢幕錄影）
 3. **08 大理石紋看樣**：流體只平流，獨立一張（三個候選共用，不放進比較）
 
-**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條 `prototype/lookdev` 分支（從 07 完成後的 main 開），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。session 可以同時開著討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每個 session 只 commit 自己的資料夾。
+**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條看樣分支（從 07 完成後的 main 開，現封存為 `archive/lookdev`），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。session 可以同時開著討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每個 session 只 commit 自己的資料夾。
 
 **評分標準**（影片並排看）：① 構築感：身影成形的過程美不美 ② 交會可讀性：一眼看得出兩人之間有連結 ③ 獨處撐不撐得住 ④ 待機（沒有身影）會不會單調 ⑤ 多人時會不會雜亂
 

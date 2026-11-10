@@ -76,7 +76,7 @@
 
 **目前狀態**：使用者 Play 確認「可以了」。一路的回饋：線寬可以；顏色要更不明顯 → 降到 0.022、掃光拿掉；人要能上下移動 → 加了兩段垂直走位。
 
-**下一步**：照 [ROADMAP 看樣計畫](../ROADMAP.md#看樣計畫) 從 main 開 `prototype/lookdev`，07a／07b／07c／08 各從 `Scenes/Main.unity` 複製場景＋Volume Profile＋`MainLines.vfx`。每張看樣開新對話。
+**下一步**：照 [ROADMAP 看樣計畫](../ROADMAP.md#看樣計畫) 從 main 開看樣分支（現封存為 `archive/lookdev`），07a／07b／07c／08 各從 `Scenes/Main.unity` 複製場景＋Volume Profile＋`MainLines.vfx`。每張看樣開新對話。
 
 **沒做／留意**
 1. Main 的身影還是 06 的做法（黑色剪影＋輪廓光，rimGlow 10、Softness 1 → 身體外 1 單位都亮）；看樣各自重做
