@@ -3,7 +3,7 @@
 **目標**：每個人是一個黑色人形剪影，線條繞著身體讓開、擠在輪廓上，邊緣最亮；走得越快線條被推得越開。
 **架構位置**：輸入層（ID 遮罩蓋印）＋渲染層。
 **前置**：03（04 的漣漪保留）
-**參考**：[person-silhouette-rim](../refs/person-silhouette-rim.png)、[lines-ridge-bump](../refs/lines-ridge-bump.png)
+**參考**：[person-silhouette-rim](../ROADMAP.md#參考圖)、[lines-ridge-bump](../ROADMAP.md#參考圖)
 
 ## 概念：一張遮罩回答「這裡有誰」
 

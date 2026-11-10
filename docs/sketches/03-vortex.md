@@ -3,7 +3,7 @@
 **目標**：滑鼠假人捲動線條，每個人周圍的線被扭成漩渦。
 **架構位置**：輸入層＋人物狀態層＋渲染層（第一次跨層）。
 **前置**：02b
-**參考**：[lines-vortex-orbit](../refs/lines-vortex-orbit.png)、[person-silhouette-rim](../refs/person-silhouette-rim.png)
+**參考**：[lines-vortex-orbit](../ROADMAP.md#參考圖)、[person-silhouette-rim](../ROADMAP.md#參考圖)
 
 ## 概念：資料從 C# 流進 VFX
 

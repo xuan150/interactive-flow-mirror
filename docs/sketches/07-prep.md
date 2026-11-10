@@ -51,7 +51,7 @@
 
 | | 06 | 07 |
 |---|---|---|
-| 條數 | 40（間距 ~24 px） | **120**（間距 ~8 px，對照 [參考](../refs/lines-fog-cursor.png)） |
+| 條數 | 40（間距 ~24 px） | **120**（間距 ~8 px，對照參考圖 [lines-fog-cursor](../ROADMAP.md#參考圖)） |
 | 每條點數 | 300（每段 ~7 px） | **600**（每段 ~3.5 px，推大時不折角） |
 | 粒子數 | 12,000 | **72,000**（Burst Count、Capacity、Strip Capacity、三個 Divide 一起改） |
 | 線寬 | 0.015（~1.4 px） | **0.01**（~1 px，SubpixelAA 接手） |
