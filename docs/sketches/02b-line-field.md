@@ -3,7 +3,7 @@
 **目標**：90 條錨定的水平平行線，緩慢起伏、呼吸、流光，**待機畫面完成**。
 **架構位置**：渲染層。
 **前置**：02（Particle Strip 的概念）
-**參考**：Rutt-Etra 錄影合成器、Joy Division《Unknown Pleasures》封面、使用者提供的平行線起伏影片
+**參考**：Rutt-Etra 錄影合成器、Joy Division《Unknown Pleasures》封面、一支平行線起伏的參考影片
 
 ## 概念：線條不再被風吹走
 
@@ -154,7 +154,7 @@ y        = 原位 y + 起伏 × 權重 + 隆起
 2. ③ 的振幅 Multiply 改成 b **2**（強度），後面接 **Add**（b **0.5**，基礎）
 3. **Render Strip（Output）** 加 **Multiply Color**，Color ← 上一步的 Add（單一數值接到顏色會自動套到 RGB；接不上的話改用 Multiply Alpha，基礎值要 < 1）
 
-使用者的做法（更彈性）：不用 One Minus ＋ Multiply Color，而是把 Smoothstep（離波峰多遠）直接接到一個 **Color 漸層 Block 的 Sample Time**，漸層一端是 HDR 亮色、另一端是基礎色，光帶的顏色與亮度分布直接在漸層上畫。
+我的做法（更彈性）：不用 One Minus ＋ Multiply Color，而是把 Smoothstep（離波峰多遠）直接接到一個 **Color 漸層 Block 的 Sample Time**，漸層一端是 HDR 亮色、另一端是基礎色，光帶的顏色與亮度分布直接在漸層上畫。
 
 **讓光帶不是一整根垂直柱子**：每條線的波峰加一個固定偏移，`波峰 = PeriodicTotalTime(Period 固定) + 偏移(stripIndex)`。
 - 斜光帶：偏移 = stripIndex × 0.6

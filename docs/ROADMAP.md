@@ -1,6 +1,6 @@
 # Roadmap
 
-> 任何時候（新對話、compact 後、跳著做）都從這份開始對照。
+> 任何時候（中斷後回來、跳著做）都從這份開始對照。
 
 ## 構想
 
@@ -43,13 +43,13 @@ Assets/_Project/
   Idle/                               ← 待機光紗（VFX、HLSL、IdleMirror），場景物件在 Main
   Nameless/                           ← 無名之物（compute、shader、C#），場景是 Scenes/Nameless.unity
   Scenes/Main.unity
-  Scenes/Sketches/Sketch_0X_*/        ← 教學用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
+  Scenes/Sketches/Sketch_0X_*/        ← 練習用，可丟棄；每張一個資料夾，放場景與它的 Volume Profile
 docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開始做那張時才寫）
 ```
 
 ## 素描本進度
 
-每張 30–60 分鐘出畫面，原理用到再講。每張結束時對照上方架構圖說明它屬於哪一層。
+每張 30–60 分鐘出畫面，原理用到再學。每張結束時對照上方架構圖，確認它屬於哪一層。
 
 | | # | Sketch | 學到什麼 | 成果 | 前置 | 文件 |
 |---|---|---|---|---|---|---|
@@ -72,7 +72,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 
 ## 目標畫面（草案，看樣後定案）
 
-2026-10-27 腦力激盪的結論。看樣做完後**回到那次腦力激盪的對話**挑勝出者，再接 `/to-spec` → `/to-tickets`。
+2026-10-27 腦力激盪的結論。看樣做完後**回到那次腦力激盪的結論**挑勝出者，再寫成規格、拆成工作項目。
 
 **情緒核心**：相遇為主、好玩為輔。任何時候畫面只有一個主角：身影。
 
@@ -101,7 +101,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 2. **07a–c 身影看樣**：只比身影。走位含待機、單人進場／靜止／移動、兩人交會與分開、多人（[07 的走位表](sketches/07-prep.md#走位輸入層)）。各 1–2 小時、拋棄式，從 `Scenes/Main.unity` 複製，錄全段走位（約 47 秒，螢幕錄影）
 3. **08 大理石紋看樣**：流體只平流，獨立一張（三個候選共用，不放進比較）
 
-**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條看樣分支（從 07 完成後的 main 開，現封存為 `archive/lookdev`），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。session 可以同時開著討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每個 session 只 commit 自己的資料夾。
+**看樣怎麼並行**（Unity 一次只開一個編輯器）：四張共用一條看樣分支（從 07 完成後的 main 開，現封存為 `archive/lookdev`），各放 `Sketch_07a/07b/07c/08` 資料夾。需要的程式各複製一份並改名（C# 用 `FlowMirror.Lookdev07a` 這類 namespace，HLSL／VFX 檔名加前綴），main 上的共用程式只讀不改。四張可以同時討論、寫，但輪流進 Unity；任何一張編譯錯誤會擋住全部，改完要確認 Console 乾淨。每張只 commit 自己的資料夾。
 
 **評分標準**（影片並排看）：① 構築感：身影成形的過程美不美 ② 交會可讀性：一眼看得出兩人之間有連結 ③ 獨處撐不撐得住 ④ 待機（沒有身影）會不會單調 ⑤ 多人時會不會雜亂
 
@@ -120,7 +120,7 @@ docs/sketches/0X-*.md                 ← 每張 sketch 的步驟與筆記（開
 - **是什麼**：全部由粒子構成、自己不規則變化的世界。形體在生物與殼之間變換，人進來不畫出人形，只用視線推開形體、讓追隨粒子跟著人；背景是帶殘影的塵埃
 - **參考答案**：網頁原型 [docs/lookdev/nameless.html](lookdev/nameless.html)（用瀏覽器開；合體為預設，「顯示事件」看事件與形態，「滑鼠＝有人」模擬觀眾）。看樣時的取捨重點寫在 ADR 0002
 - **Unity**：`Scenes/Nameless.unity`，程式在 `Assets/_Project/Nameless/`。一群約 20 萬顆的粒子用 compute shader 模擬、自訂 shader 畫成點；節奏由純 C# 的指揮（Conductor）決定，有 EditMode 測試
-- **還沒做**：多位觀眾（目前一位，滑鼠）；效能在使用者電腦上的實測
+- **還沒做**：多位觀眾（目前一位，滑鼠）；效能實測
 
 ## 數學積木
 
